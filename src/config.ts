@@ -17,10 +17,13 @@ export const SFX_VOLUME = 0.6;
 export const SCENE_KEYS = {
   Boot: 'Boot',
   Menu: 'Menu',
+  Meta: 'Meta',
+  Codex: 'Codex',
   CharacterSelect: 'CharacterSelect',
   Game: 'Game',
   Shop: 'Shop',
   LevelUp: 'LevelUp',
+  Question: 'Question',
   Pause: 'Pause',
   GameOver: 'GameOver'
 } as const;
@@ -37,6 +40,7 @@ export const COLORS = {
   player: 0x4dd0e1,
   playerAim: 0xffffff,
   chaser: 0xff6b6b,
+  charger: 0xf1c40f,
   brute: 0xb44bd6,
   shooter: 0xff922b,
   bullet: 0xffe066,

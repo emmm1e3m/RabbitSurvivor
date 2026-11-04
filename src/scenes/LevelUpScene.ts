@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { SCENE_KEYS, GAME_WIDTH, GAME_HEIGHT, COLORS } from '../config';
 import { AttrKey } from '../core/AttributeSystem';
 import { EventBus, Events } from '../core/EventBus';
+import { MetaProgress } from '../core/MetaProgress';
 import { RunData } from '../core/RunData';
 import { Sfx } from '../core/Sfx';
 import { LEVEL } from '../data/balance';
@@ -56,6 +57,10 @@ export class LevelUpScene extends Phaser.Scene {
   private cardObjects: Phaser.GameObjects.GameObject[] = [];
   private selected: LevelOffer | null = null;
   private subtitle!: Phaser.GameObjects.Text;
+  /** 本次升级内已刷新次数（决定下一次刷新费用，选中后重置） */
+  private refreshCount = 0;
+  private refreshLabel!: Phaser.GameObjects.Text;
+  private goldText!: Phaser.GameObjects.Text;
 
   constructor() {
     super(SCENE_KEYS.LevelUp);
@@ -66,6 +71,7 @@ export class LevelUpScene extends Phaser.Scene {
     this.cards = [];
     this.cardObjects = [];
     this.selected = null;
+    this.refreshCount = 0;
 
     const cx = GAME_WIDTH / 2;
     const cy = GAME_HEIGHT / 2;
@@ -84,15 +90,20 @@ export class LevelUpScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     this.subtitle = this.add
-      .text(cx, 148, '从随机属性中三选一，品质决定数值档位', {
+      .text(cx, 148, '随机三选一（品质决定数值档位），可花金币刷新', {
         fontSize: '18px',
         color: COLORS.textDim
       })
       .setOrigin(0.5);
 
+    this.goldText = this.add
+      .text(cx + 400, 100, '', { fontSize: '18px', color: COLORS.gold })
+      .setOrigin(1, 0.5);
+
+    this.createActionButtons(cx, 608);
     this.renderOffers();
-    this.createConfirmButton(cx, 608);
     this.input.keyboard!.on('keydown-ENTER', () => this.confirm());
+    this.input.keyboard!.on('keydown-R', () => this.refreshOffers());
   }
 
   /** 随机抽取不重复的属性并各自掷品质，重建三张卡片 */
@@ -106,10 +117,35 @@ export class LevelUpScene extends Phaser.Scene {
     const pool = [...STAT_TRINKETS];
     for (let i = 0; i < LEVEL.optionCount && pool.length > 0; i++) {
       const def = pool.splice(Phaser.Math.Between(0, pool.length - 1), 1)[0];
+      MetaProgress.discoverTrinket(`stat:${def.id}`);
       const rarity = this.rollRarity();
       const offer: LevelOffer = { def, rarity, value: def.value * rarity.mult };
       this.createCard(offer, i, cx, 242 + i * 108);
     }
+    this.updateFooter();
+  }
+
+  /** 花金币重掷三个选项；费用随本次升级内的刷新次数递增 */
+  private refreshOffers(): void {
+    if (this.closed) return;
+    const cost = LEVEL.refreshCost(this.refreshCount);
+    if (RunData.gold < cost) {
+      Sfx.ui();
+      return;
+    }
+    RunData.addGold(-cost);
+    EventBus.emit(Events.GoldChanged, RunData.gold);
+    this.refreshCount++;
+    Sfx.select();
+    this.renderOffers();
+  }
+
+  private updateFooter(): void {
+    const cost = LEVEL.refreshCost(this.refreshCount);
+    const affordable = RunData.gold >= cost;
+    this.refreshLabel.setText(affordable ? `刷新属性（${cost} 金币）` : `金币不足（需 ${cost}）`);
+    this.refreshLabel.setColor(affordable ? COLORS.textLight : COLORS.textDim);
+    this.goldText.setText(`金币 ${RunData.gold}`);
   }
 
   private rollRarity(): LevelRarity {
@@ -183,18 +219,28 @@ export class LevelUpScene extends Phaser.Scene {
     });
   }
 
-  private createConfirmButton(x: number, y: number): void {
-    const button = this.add
-      .rectangle(x, y, 260, 56, 0x2f6f4f)
+  private createActionButtons(x: number, y: number): void {
+    const refreshBg = this.add
+      .rectangle(x - 180, y, 300, 56, 0x2e3350)
+      .setStrokeStyle(2, 0x4da3ff)
+      .setInteractive({ useHandCursor: true });
+    this.refreshLabel = this.add
+      .text(x - 180, y, '', { fontSize: '21px', color: COLORS.textLight })
+      .setOrigin(0.5);
+    refreshBg.on('pointerover', () => refreshBg.setFillStyle(0x3a4058));
+    refreshBg.on('pointerout', () => refreshBg.setFillStyle(0x2e3350));
+    refreshBg.on('pointerdown', () => this.refreshOffers());
+
+    const confirmBg = this.add
+      .rectangle(x + 180, y, 260, 56, 0x2f6f4f)
       .setStrokeStyle(2, 0x51cf66)
       .setInteractive({ useHandCursor: true });
     this.add
-      .text(x, y, '确认属性', { fontSize: '24px', color: COLORS.textLight })
+      .text(x + 180, y, '确认属性', { fontSize: '24px', color: COLORS.textLight })
       .setOrigin(0.5);
-
-    button.on('pointerover', () => button.setFillStyle(0x3a8a63));
-    button.on('pointerout', () => button.setFillStyle(0x2f6f4f));
-    button.on('pointerdown', () => this.confirm());
+    confirmBg.on('pointerover', () => confirmBg.setFillStyle(0x3a8a63));
+    confirmBg.on('pointerout', () => confirmBg.setFillStyle(0x2f6f4f));
+    confirmBg.on('pointerdown', () => this.confirm());
   }
 
   private confirm(): void {
@@ -212,8 +258,9 @@ export class LevelUpScene extends Phaser.Scene {
     if (offer.def.attr === AttrKey.MaxHP) RunData.pendingHeal += offer.value;
     RunData.pendingLevelUps = Math.max(0, RunData.pendingLevelUps - 1);
 
-    // 一次获得多级时在同一页面连续选择，每次都重新抽一组
+    // 一次获得多级时在同一页面连续选择，每次都重新抽一组（刷新费用也重置）
     if (RunData.pendingLevelUps > 0) {
+      this.refreshCount = 0;
       this.renderOffers();
       this.subtitle.setText(`选择一项属性提升（剩余 ${RunData.pendingLevelUps} 次）`);
       return;

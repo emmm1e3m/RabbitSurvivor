@@ -5,6 +5,7 @@ import { RunData } from '../core/RunData';
 import { Sfx } from '../core/Sfx';
 import { CHARACTERS, CharacterDef } from '../data/characters';
 import { DIFFICULTIES, DifficultyDef } from '../data/balance';
+import { CHARACTER_SKILLS } from '../data/skills';
 
 interface CardView {
   bg: Phaser.GameObjects.Rectangle;
@@ -51,10 +52,12 @@ export class CharacterSelectScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     this.add
-      .text(GAME_WIDTH / 2, 156, '← → / A D 切换角色 · ↑ ↓ / W S 调整难度 · Enter 开始', {
-        fontSize: '16px',
-        color: COLORS.textDim
-      })
+      .text(
+        GAME_WIDTH / 2,
+        156,
+        '← → / A D 切换角色 · ↑ ↓ / W S 调整难度 · Enter 开始 · ESC 返回',
+        { fontSize: '16px', color: COLORS.textDim }
+      )
       .setOrigin(0.5);
 
     this.index = Math.max(
@@ -64,7 +67,7 @@ export class CharacterSelectScene extends Phaser.Scene {
 
     CHARACTERS.forEach((character, i) => {
       const x = GAME_WIDTH / 2 + (i - (CHARACTERS.length - 1) / 2) * 330;
-      this.createCard(character, x, 390);
+      this.createCard(character, x, 382);
     });
     this.refreshSelection();
     this.createDifficultyRow();
@@ -79,6 +82,11 @@ export class CharacterSelectScene extends Phaser.Scene {
     keyboard.on('keydown-W', () => this.selectDifficulty(-1));
     keyboard.on('keydown-S', () => this.selectDifficulty(1));
     keyboard.once('keydown-ENTER', () => this.confirm());
+    keyboard.on('keydown-ESC', () => {
+      if (this.confirmed) return;
+      Sfx.ui();
+      this.scene.start(SCENE_KEYS.Menu);
+    });
   }
 
   private createDifficultyRow(): void {
@@ -152,8 +160,8 @@ export class CharacterSelectScene extends Phaser.Scene {
 
   private createCard(character: CharacterDef, x: number, y: number): void {
     const container = this.add.container(x, y);
-    const bg = this.add.rectangle(0, 0, 280, 340, 0x232638).setStrokeStyle(2, 0x3a3f5c);
-    const portrait = this.add.image(0, -100, `player-${character.id}`).setScale(3);
+    const bg = this.add.rectangle(0, 0, 280, 360, 0x232638).setStrokeStyle(2, 0x3a3f5c);
+    const portrait = this.add.image(0, -110, `player-${character.id}`).setScale(3);
 
     const name = this.add
       .text(0, -30, character.name, {
@@ -172,16 +180,24 @@ export class CharacterSelectScene extends Phaser.Scene {
       })
       .setOrigin(0.5);
 
-    const stats = this.add
-      .text(0, 52, this.statsText(character), {
-        fontSize: '14px',
-        color: COLORS.textDim,
-        align: 'center',
-        lineSpacing: 4
+    const skill = CHARACTER_SKILLS[character.id];
+    const skillText = this.add
+      .text(0, 48, `技能：${skill.name}（${skill.active ? '空格主动' : '自动'}）`, {
+        fontSize: '13px',
+        color: '#4dd0e1'
       })
       .setOrigin(0.5, 0);
 
-    container.add([bg, portrait, name, desc, stats]);
+    const stats = this.add
+      .text(0, 68, this.statsText(character), {
+        fontSize: '13px',
+        color: COLORS.textDim,
+        align: 'center',
+        lineSpacing: 1
+      })
+      .setOrigin(0.5, 0);
+
+    container.add([bg, portrait, name, desc, skillText, stats]);
     this.cards.push({ bg, container });
   }
 

@@ -32,7 +32,7 @@ export class PauseScene extends Phaser.Scene {
       .text(
         GAME_WIDTH / 2,
         GAME_HEIGHT / 2 - 118,
-        `${RunData.character.name} · 第 ${game.currentWave} 波 · 击杀 ${RunData.kills} 个敌人`,
+        `${RunData.character.name} · 第 ${game.currentWave} 波 · 小怪 ${RunData.normalKills} · 精英 ${RunData.eliteKills}`,
         { fontSize: '18px', color: COLORS.textDim }
       )
       .setOrigin(0.5);
@@ -108,7 +108,8 @@ export class PauseScene extends Phaser.Scene {
     this.scene.stop(SCENE_KEYS.Game);
     this.scene.start(SCENE_KEYS.GameOver, {
       wave,
-      kills: RunData.kills,
+      normalKills: RunData.normalKills,
+      eliteKills: RunData.eliteKills,
       victory: false
     });
   }

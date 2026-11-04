@@ -60,6 +60,9 @@ export class Pickup extends Phaser.GameObjects.Sprite {
       RunData.addGold(this.value);
       EventBus.emit(Events.GoldChanged, RunData.gold);
       Sfx.coin();
+    } else if (this.kind === 'question') {
+      RunData.questionMarks++;
+      Sfx.question();
     } else {
       player.heal(this.value);
       Sfx.heal();

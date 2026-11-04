@@ -1,4 +1,5 @@
 import { RunData } from '../core/RunData';
+import { MetaProgress } from '../core/MetaProgress';
 import { EventBus, Events } from '../core/EventBus';
 import { AttrKey } from '../core/AttributeSystem';
 import { SHOP, WEAPON } from '../data/balance';
@@ -92,6 +93,13 @@ export class ShopSystem {
           offers[i] = offer;
           used.add(offer.id);
         }
+      }
+    }
+
+    // 出现在商店即记入图鉴
+    for (const offer of offers) {
+      if (offer && (offer.kind === 'stat' || offer.kind === 'effect')) {
+        MetaProgress.discoverTrinket(offer.id);
       }
     }
     return offers as ShopOffer[];

@@ -11,5 +11,6 @@ export const Events = {
   GoldChanged: 'gold-changed',
   ShopPurchased: 'shop-purchased',
   ShopClosed: 'shop-closed',
-  LevelUpClosed: 'level-up-closed'
+  LevelUpClosed: 'level-up-closed',
+  QuestionClosed: 'question-closed'
 } as const;

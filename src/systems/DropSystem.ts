@@ -1,4 +1,4 @@
-import { DROP } from '../data/balance';
+import { DROP, QUESTION } from '../data/balance';
 import { Enemy } from '../entities/Enemy';
 import { Pickup } from '../entities/Pickup';
 
@@ -27,9 +27,14 @@ export class DropSystem {
         );
       }
     }
+
+    const questionChance = QUESTION.dropChance[enemy.kind];
+    if (questionChance !== undefined && Math.random() < questionChance) {
+      this.spawn(enemy.x, enemy.y, 'question', 1);
+    }
   }
 
-  private spawn(x: number, y: number, kind: 'material' | 'heal', value: number): void {
+  private spawn(x: number, y: number, kind: 'material' | 'heal' | 'question', value: number): void {
     const pickup = this.pickups.get() as Pickup | null;
     if (!pickup) return;
     pickup.spawn(x, y, kind, value);

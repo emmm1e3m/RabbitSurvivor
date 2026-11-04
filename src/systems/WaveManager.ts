@@ -25,7 +25,8 @@ export class WaveManager {
     return this.remaining;
   }
 
-  startWave(n: number): void {
+  /** extraCountMult 为小问号等来源的临时数量倍率，仅作用于本波预生成队列 */
+  startWave(n: number, extraCountMult = 1): void {
     this.wave = n;
     this.state = 'running';
     this.spawnTimer = 0.6;
@@ -33,8 +34,10 @@ export class WaveManager {
     this.remaining = WAVE.duration(n);
 
     const queue: EnemyKind[] = [];
-    const scaled = (count: number) => Math.max(0, Math.round(count * this.countMult));
+    const countMult = this.countMult * extraCountMult;
+    const scaled = (count: number) => Math.max(0, Math.round(count * countMult));
     for (let i = 0; i < scaled(WAVE.chaserCount(n)); i++) queue.push('chaser');
+    for (let i = 0; i < scaled(WAVE.chargerCount(n)); i++) queue.push('charger');
     for (let i = 0; i < scaled(WAVE.bruteCount(n)); i++) queue.push('brute');
     for (let i = 0; i < scaled(WAVE.shooterCount(n)); i++) queue.push('shooter');
 
@@ -43,6 +46,8 @@ export class WaveManager {
       const j = Math.floor(Math.random() * (i + 1));
       [queue[i], queue[j]] = [queue[j], queue[i]];
     }
+    // Boss 固定在队列头部，开场即带红点提示登场
+    if (WAVE.bossCount(n) > 0) queue.unshift('boss');
     this.queue = queue;
 
     EventBus.emit(Events.WaveStarted, n);

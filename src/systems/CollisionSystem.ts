@@ -53,6 +53,7 @@ export class CollisionSystem {
         if (dx * dx + dy * dy > reach * reach) continue;
 
         projectile.hitSet.add(enemy);
+        if (projectile.burnDps > 0) enemy.applyBurn(projectile.burnDps);
         enemy.takeDamage(projectile.damage, projectile.isCrit);
 
         if (projectile.pierce > 0) {

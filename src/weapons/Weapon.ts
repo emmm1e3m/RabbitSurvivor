@@ -1,8 +1,8 @@
 import Phaser from 'phaser';
 import { RunData } from '../core/RunData';
 import { Sfx } from '../core/Sfx';
-import { EffectId } from '../types';
-import { PLAYER, WEAPON, EFFECTS } from '../data/balance';
+import { EffectId, MetaEffectId, isProp } from '../types';
+import { META, PLAYER, WEAPON, EFFECTS } from '../data/balance';
 import { Player } from '../entities/Player';
 import { Enemy } from '../entities/Enemy';
 import { Projectile } from '../entities/Projectile';
@@ -10,6 +10,10 @@ import { Projectile } from '../entities/Projectile';
 /** 单一武器（自动索敌开火），数值成长来自武器等级 + 属性 + 特效饰品 */
 export class Weapon {
   private cooldownTimer = 0;
+  /** 本弹匣已发射的数量 */
+  private ammo = 0;
+  private reloadTimer = 0;
+  private reloading = false;
 
   constructor(
     private scene: Phaser.Scene,
@@ -23,8 +27,27 @@ export class Weapon {
     return RunData.weaponLevel;
   }
 
+  /** 装填进度（0-1）；未装填时为 null，用于显示蓄力条 */
+  get reloadProgress(): number | null {
+    if (!this.reloading) return null;
+    return 1 - Math.max(0, this.reloadTimer) / WEAPON.reloadTime;
+  }
+
   update(delta: number): void {
-    this.cooldownTimer -= delta / 1000;
+    const dt = delta / 1000;
+
+    if (this.reloading) {
+      this.reloadTimer -= dt;
+      if (this.reloadTimer <= 0) {
+        this.reloading = false;
+        this.ammo = 0;
+        // 装填完成立即恢复开火，不额外等待旧冷却
+        this.cooldownTimer = 0;
+      }
+      return;
+    }
+
+    this.cooldownTimer -= dt;
     if (this.cooldownTimer > 0) return;
 
     const target = this.findTarget();
@@ -32,6 +55,17 @@ export class Weapon {
 
     this.fire(target);
     this.cooldownTimer = this.currentCooldown();
+  }
+
+  /** 调试：立即打空弹匣进入装填 */
+  debugReload(): void {
+    this.startReload();
+  }
+
+  private startReload(): void {
+    this.reloading = true;
+    this.reloadTimer = WEAPON.reloadTime;
+    Sfx.reload(WEAPON.reloadTime);
   }
 
   private currentCooldown(): number {
@@ -52,8 +86,8 @@ export class Weapon {
       const dy = target.y - this.owner.y;
       const distSq = dx * dx + dy * dy;
 
-      // 优先攻击敌人，射程内没有敌人时才把苹果树当作目标
-      if (target.kind === 'tree') {
+      // 优先攻击敌人，射程内没有敌人时才把可破坏物（苹果树/炸药桶）当作目标
+      if (isProp(target.kind)) {
         if (distSq < propDistSq) {
           propDistSq = distSq;
           prop = target;
@@ -78,8 +112,13 @@ export class Weapon {
     const isCrit = Math.random() < RunData.attributes.critChance;
     if (isCrit) damage *= PLAYER.critMultiplier;
 
-    const pierce = RunData.getEffect(EffectId.Pierce);
-    const shotCount = 1 + RunData.getEffect(EffectId.MultiShot);
+    const pierce = RunData.getEffect(EffectId.Pierce) + RunData.getMetaEffect(MetaEffectId.Pierce);
+    const shotCount =
+      1 + RunData.getEffect(EffectId.MultiShot) + RunData.getMetaEffect(MetaEffectId.ExtraProjectile);
+    // 局外天赋燃烧：每级独立计算每秒伤害，命中后刷新持续时间
+    const burnStacks = RunData.getMetaEffect(MetaEffectId.Burn);
+    const burnDps =
+      burnStacks > 0 ? this.getBaseHitDamage() * META.burnDamageRatio * burnStacks : 0;
     const baseAngle = Math.atan2(target.y - this.owner.y, target.x - this.owner.x);
     const life =
       this.owner.attributes.range / WEAPON.projectileSpeed + WEAPON.projectileLifeMargin;
@@ -95,10 +134,15 @@ export class Weapon {
         pierce,
         isCrit,
         speed: WEAPON.projectileSpeed,
-        life
+        life,
+        burnDps
       });
       launched++;
     }
-    if (launched > 0) Sfx.shoot();
+    if (launched > 0) {
+      Sfx.shoot();
+      this.ammo += launched;
+      if (this.ammo >= WEAPON.magazineSize) this.startReload();
+    }
   }
 }

@@ -10,6 +10,8 @@ export interface ProjectileConfig {
   isCrit: boolean;
   speed: number;
   life: number;
+  /** 命中后附加的每秒燃烧伤害，0 或不填表示无燃烧 */
+  burnDps?: number;
 }
 
 export class Projectile extends Phaser.GameObjects.Sprite {
@@ -21,6 +23,7 @@ export class Projectile extends Phaser.GameObjects.Sprite {
   isCrit = false;
   speed = 0;
   life = 0;
+  burnDps = 0;
   readonly radius = WEAPON.projectileRadius;
   hitSet = new Set<Enemy>();
 
@@ -39,6 +42,7 @@ export class Projectile extends Phaser.GameObjects.Sprite {
     this.isCrit = cfg.isCrit;
     this.speed = cfg.speed;
     this.life = cfg.life;
+    this.burnDps = cfg.burnDps ?? 0;
     this.hitSet.clear();
 
     this.setScale(cfg.isCrit ? 1.35 : 1);

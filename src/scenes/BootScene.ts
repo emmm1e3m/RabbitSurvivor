@@ -55,6 +55,18 @@ export class BootScene extends Phaser.Scene {
       g.fillCircle(10, 11, 2.5);
       g.fillCircle(20, 11, 2.5);
     });
+    this.tex('charger', 34, 34, (g) => {
+      g.fillStyle(COLORS.charger, 1);
+      g.fillCircle(17, 17, 15);
+      g.lineStyle(2, 0x8a6d1a, 1);
+      g.strokeCircle(17, 17, 15);
+      // 冲刺箭头
+      g.fillStyle(0x6b3f00, 1);
+      g.fillTriangle(25, 17, 12, 9, 12, 25);
+      g.fillStyle(0x6b3f00, 0.85);
+      g.fillCircle(9, 12, 2);
+      g.fillCircle(9, 22, 2);
+    });
     this.tex('brute', 54, 54, (g) => {
       g.fillStyle(COLORS.brute, 1);
       g.fillCircle(27, 27, 26);
@@ -78,6 +90,47 @@ export class BootScene extends Phaser.Scene {
       g.fillStyle(0x8a3b12, 1);
       g.fillCircle(26, 44, 5);
     });
+    this.tex('boss', 96, 96, (g) => {
+      g.fillStyle(0x7d1f3f, 1);
+      g.fillCircle(48, 48, 44);
+      g.lineStyle(4, 0x3d0f20, 1);
+      g.strokeCircle(48, 48, 44);
+      // 双角
+      g.fillStyle(0x3d0f20, 1);
+      g.fillTriangle(18, 22, 34, 8, 36, 30);
+      g.fillTriangle(78, 22, 62, 8, 60, 30);
+      // 眼睛与嘴
+      g.fillStyle(0xffd23f, 1);
+      g.fillCircle(34, 42, 7);
+      g.fillCircle(62, 42, 7);
+      g.fillStyle(0x3d0f20, 1);
+      g.fillRect(32, 62, 32, 9);
+    });
+
+    // 精英死亡黑白效果用灰度纹理
+    for (const key of ['brute', 'shooter', 'boss']) {
+      this.makeGray(key);
+    }
+  }
+
+  /** 生成原纹理的去饱和副本（`<key>-gray`），用于精英死亡表现 */
+  private makeGray(key: string): void {
+    if (this.textures.exists(`${key}-gray`)) return;
+    const source = this.textures.get(key).getSourceImage() as HTMLCanvasElement;
+    const texture = this.textures.createCanvas(`${key}-gray`, source.width, source.height);
+    if (!texture) return;
+    const ctx = texture.getContext();
+    ctx.drawImage(source, 0, 0);
+    const image = ctx.getImageData(0, 0, source.width, source.height);
+    const data = image.data;
+    for (let i = 0; i < data.length; i += 4) {
+      const gray = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
+      data[i] = gray;
+      data[i + 1] = gray;
+      data[i + 2] = gray;
+    }
+    ctx.putImageData(image, 0, 0);
+    texture.refresh();
   }
 
   private makeProps(): void {
@@ -99,6 +152,22 @@ export class BootScene extends Phaser.Scene {
       g.fillCircle(36, 29, 4);
       g.fillCircle(29, 14, 3.5);
       g.fillCircle(23, 36, 3.5);
+    });
+    this.tex('barrel', 40, 46, (g) => {
+      g.fillStyle(0xb03a2e, 1);
+      g.fillRoundedRect(4, 6, 32, 38, 6);
+      g.lineStyle(3, 0x6e1f18, 1);
+      g.strokeRoundedRect(4, 6, 32, 38, 6);
+      // 桶箍
+      g.fillStyle(0x6e1f18, 1);
+      g.fillRect(4, 15, 32, 4);
+      g.fillRect(4, 33, 32, 4);
+      // 警告标志
+      g.fillStyle(0xffd23f, 1);
+      g.fillTriangle(20, 19, 12, 31, 28, 31);
+      g.fillStyle(0x6e1f18, 1);
+      g.fillRect(19, 22, 3, 5);
+      g.fillRect(19, 28, 3, 2);
     });
   }
 
@@ -142,6 +211,24 @@ export class BootScene extends Phaser.Scene {
       g.fillStyle(COLORS.heal, 1);
       g.fillCircle(12, 4, 2.6);
     });
+
+    // 小问号：金色圆底 + 黑色问号（Canvas 文本便于绘制字形）
+    const question = this.textures.createCanvas('question', 22, 22);
+    if (!question) return;
+    const ctx = question.getContext();
+    ctx.fillStyle = '#ffd23f';
+    ctx.beginPath();
+    ctx.arc(11, 11, 10, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.lineWidth = 1.5;
+    ctx.strokeStyle = '#8a6d1a';
+    ctx.stroke();
+    ctx.fillStyle = '#11121a';
+    ctx.font = 'bold 15px "Segoe UI", "Microsoft YaHei", sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('?', 11, 12);
+    question.refresh();
   }
 
   private makeGrid(): void {
