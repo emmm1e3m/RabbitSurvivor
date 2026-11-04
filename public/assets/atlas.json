@@ -22,7 +22,7 @@
     },
     "boss-1": {
       "frame": {
-        "x": 54,
+        "x": 102,
         "y": 2,
         "w": 48,
         "h": 48
@@ -42,7 +42,7 @@
     },
     "boss-2": {
       "frame": {
-        "x": 106,
+        "x": 202,
         "y": 2,
         "w": 48,
         "h": 48
@@ -62,7 +62,7 @@
     },
     "boss-3": {
       "frame": {
-        "x": 158,
+        "x": 302,
         "y": 2,
         "w": 48,
         "h": 48
@@ -82,7 +82,7 @@
     },
     "cookie-enemy": {
       "frame": {
-        "x": 210,
+        "x": 402,
         "y": 2,
         "w": 48,
         "h": 48
@@ -102,7 +102,7 @@
     },
     "note-enemy": {
       "frame": {
-        "x": 262,
+        "x": 502,
         "y": 2,
         "w": 48,
         "h": 48
@@ -122,7 +122,7 @@
     },
     "charger": {
       "frame": {
-        "x": 314,
+        "x": 602,
         "y": 2,
         "w": 48,
         "h": 48
@@ -142,7 +142,7 @@
     },
     "elite": {
       "frame": {
-        "x": 366,
+        "x": 702,
         "y": 2,
         "w": 48,
         "h": 48
@@ -162,7 +162,7 @@
     },
     "exploder": {
       "frame": {
-        "x": 418,
+        "x": 802,
         "y": 2,
         "w": 48,
         "h": 48
@@ -182,7 +182,7 @@
     },
     "tree": {
       "frame": {
-        "x": 470,
+        "x": 902,
         "y": 2,
         "w": 48,
         "h": 48
@@ -203,7 +203,47 @@
     "barrel": {
       "frame": {
         "x": 2,
-        "y": 54,
+        "y": 102,
+        "w": 48,
+        "h": 48
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 48,
+        "h": 48
+      },
+      "sourceSize": {
+        "w": 48,
+        "h": 48
+      }
+    },
+    "tree-beach": {
+      "frame": {
+        "x": 102,
+        "y": 102,
+        "w": 48,
+        "h": 48
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 48,
+        "h": 48
+      },
+      "sourceSize": {
+        "w": 48,
+        "h": 48
+      }
+    },
+    "tree-water": {
+      "frame": {
+        "x": 202,
+        "y": 102,
         "w": 48,
         "h": 48
       },
@@ -222,8 +262,8 @@
     },
     "apple": {
       "frame": {
-        "x": 54,
-        "y": 54,
+        "x": 302,
+        "y": 102,
         "w": 48,
         "h": 48
       },
@@ -242,8 +282,8 @@
     },
     "cookie": {
       "frame": {
-        "x": 106,
-        "y": 54,
+        "x": 402,
+        "y": 102,
         "w": 48,
         "h": 48
       },
@@ -262,8 +302,8 @@
     },
     "coin": {
       "frame": {
-        "x": 158,
-        "y": 54,
+        "x": 502,
+        "y": 102,
         "w": 48,
         "h": 48
       },
@@ -282,8 +322,8 @@
     },
     "hat": {
       "frame": {
-        "x": 210,
-        "y": 54,
+        "x": 602,
+        "y": 102,
         "w": 48,
         "h": 48
       },
@@ -302,8 +342,8 @@
     },
     "bow": {
       "frame": {
-        "x": 262,
-        "y": 54,
+        "x": 702,
+        "y": 102,
         "w": 48,
         "h": 48
       },
@@ -322,8 +362,8 @@
     },
     "lamp": {
       "frame": {
-        "x": 314,
-        "y": 54,
+        "x": 802,
+        "y": 102,
         "w": 48,
         "h": 48
       },
@@ -342,8 +382,8 @@
     },
     "heart-icon": {
       "frame": {
-        "x": 366,
-        "y": 54,
+        "x": 902,
+        "y": 102,
         "w": 48,
         "h": 48
       },
@@ -362,8 +402,8 @@
     },
     "shield": {
       "frame": {
-        "x": 418,
-        "y": 54,
+        "x": 2,
+        "y": 202,
         "w": 48,
         "h": 48
       },
@@ -382,8 +422,8 @@
     },
     "xp": {
       "frame": {
-        "x": 470,
-        "y": 54,
+        "x": 102,
+        "y": 202,
         "w": 48,
         "h": 48
       },
@@ -402,8 +442,8 @@
     },
     "star": {
       "frame": {
-        "x": 2,
-        "y": 106,
+        "x": 202,
+        "y": 202,
         "w": 48,
         "h": 48
       },
@@ -422,8 +462,8 @@
     },
     "boots": {
       "frame": {
-        "x": 54,
-        "y": 106,
+        "x": 302,
+        "y": 202,
         "w": 48,
         "h": 48
       },
@@ -442,8 +482,8 @@
     },
     "magnet": {
       "frame": {
-        "x": 106,
-        "y": 106,
+        "x": 402,
+        "y": 202,
         "w": 48,
         "h": 48
       },
@@ -462,8 +502,8 @@
     },
     "ring": {
       "frame": {
-        "x": 158,
-        "y": 106,
+        "x": 502,
+        "y": 202,
         "w": 48,
         "h": 48
       },
@@ -482,8 +522,8 @@
     },
     "clover": {
       "frame": {
-        "x": 210,
-        "y": 106,
+        "x": 602,
+        "y": 202,
         "w": 48,
         "h": 48
       },
@@ -502,8 +542,8 @@
     },
     "projectile": {
       "frame": {
-        "x": 262,
-        "y": 106,
+        "x": 702,
+        "y": 202,
         "w": 48,
         "h": 48
       },
@@ -522,8 +562,8 @@
     },
     "enemy-shot": {
       "frame": {
-        "x": 314,
-        "y": 106,
+        "x": 802,
+        "y": 202,
         "w": 48,
         "h": 48
       },
@@ -542,8 +582,8 @@
     },
     "pixel": {
       "frame": {
-        "x": 366,
-        "y": 106,
+        "x": 902,
+        "y": 202,
         "w": 48,
         "h": 48
       },
@@ -562,8 +602,8 @@
     },
     "heal-potion": {
       "frame": {
-        "x": 418,
-        "y": 106,
+        "x": 2,
+        "y": 302,
         "w": 48,
         "h": 48
       },
@@ -582,8 +622,8 @@
     },
     "blast": {
       "frame": {
-        "x": 470,
-        "y": 106,
+        "x": 102,
+        "y": 302,
         "w": 48,
         "h": 48
       },
@@ -602,8 +642,8 @@
     },
     "sword": {
       "frame": {
-        "x": 2,
-        "y": 158,
+        "x": 202,
+        "y": 302,
         "w": 48,
         "h": 48
       },
@@ -622,8 +662,8 @@
     },
     "book": {
       "frame": {
-        "x": 54,
-        "y": 158,
+        "x": 302,
+        "y": 302,
         "w": 48,
         "h": 48
       },
@@ -642,8 +682,8 @@
     },
     "signal-icon": {
       "frame": {
-        "x": 106,
-        "y": 158,
+        "x": 402,
+        "y": 302,
         "w": 48,
         "h": 48
       },
@@ -662,8 +702,8 @@
     },
     "grass-0": {
       "frame": {
-        "x": 158,
-        "y": 158,
+        "x": 502,
+        "y": 302,
         "w": 48,
         "h": 48
       },
@@ -682,8 +722,8 @@
     },
     "grass-1": {
       "frame": {
-        "x": 210,
-        "y": 158,
+        "x": 602,
+        "y": 302,
         "w": 48,
         "h": 48
       },
@@ -702,8 +742,8 @@
     },
     "grass-2": {
       "frame": {
-        "x": 262,
-        "y": 158,
+        "x": 702,
+        "y": 302,
         "w": 48,
         "h": 48
       },
@@ -722,8 +762,8 @@
     },
     "grass-3": {
       "frame": {
-        "x": 314,
-        "y": 158,
+        "x": 802,
+        "y": 302,
         "w": 48,
         "h": 48
       },
@@ -742,8 +782,8 @@
     },
     "flower-0": {
       "frame": {
-        "x": 366,
-        "y": 158,
+        "x": 902,
+        "y": 302,
         "w": 48,
         "h": 48
       },
@@ -762,8 +802,8 @@
     },
     "flower-1": {
       "frame": {
-        "x": 418,
-        "y": 158,
+        "x": 2,
+        "y": 402,
         "w": 48,
         "h": 48
       },
@@ -782,8 +822,468 @@
     },
     "flower-2": {
       "frame": {
-        "x": 470,
-        "y": 158,
+        "x": 102,
+        "y": 402,
+        "w": 48,
+        "h": 48
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 48,
+        "h": 48
+      },
+      "sourceSize": {
+        "w": 48,
+        "h": 48
+      }
+    },
+    "terrain-grass": {
+      "frame": {
+        "x": 202,
+        "y": 402,
+        "w": 96,
+        "h": 96
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 96,
+        "h": 96
+      },
+      "sourceSize": {
+        "w": 96,
+        "h": 96
+      }
+    },
+    "terrain-grass-1": {
+      "frame": {
+        "x": 302,
+        "y": 402,
+        "w": 96,
+        "h": 96
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 96,
+        "h": 96
+      },
+      "sourceSize": {
+        "w": 96,
+        "h": 96
+      }
+    },
+    "terrain-forest": {
+      "frame": {
+        "x": 402,
+        "y": 402,
+        "w": 96,
+        "h": 96
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 96,
+        "h": 96
+      },
+      "sourceSize": {
+        "w": 96,
+        "h": 96
+      }
+    },
+    "terrain-forest-1": {
+      "frame": {
+        "x": 502,
+        "y": 402,
+        "w": 96,
+        "h": 96
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 96,
+        "h": 96
+      },
+      "sourceSize": {
+        "w": 96,
+        "h": 96
+      }
+    },
+    "terrain-beach": {
+      "frame": {
+        "x": 602,
+        "y": 402,
+        "w": 96,
+        "h": 96
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 96,
+        "h": 96
+      },
+      "sourceSize": {
+        "w": 96,
+        "h": 96
+      }
+    },
+    "terrain-beach-1": {
+      "frame": {
+        "x": 702,
+        "y": 402,
+        "w": 96,
+        "h": 96
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 96,
+        "h": 96
+      },
+      "sourceSize": {
+        "w": 96,
+        "h": 96
+      }
+    },
+    "terrain-sea": {
+      "frame": {
+        "x": 802,
+        "y": 402,
+        "w": 96,
+        "h": 96
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 96,
+        "h": 96
+      },
+      "sourceSize": {
+        "w": 96,
+        "h": 96
+      }
+    },
+    "terrain-sea-1": {
+      "frame": {
+        "x": 902,
+        "y": 402,
+        "w": 96,
+        "h": 96
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 96,
+        "h": 96
+      },
+      "sourceSize": {
+        "w": 96,
+        "h": 96
+      }
+    },
+    "decor-grass": {
+      "frame": {
+        "x": 2,
+        "y": 502,
+        "w": 48,
+        "h": 48
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 48,
+        "h": 48
+      },
+      "sourceSize": {
+        "w": 48,
+        "h": 48
+      }
+    },
+    "decor-bush": {
+      "frame": {
+        "x": 102,
+        "y": 502,
+        "w": 48,
+        "h": 48
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 48,
+        "h": 48
+      },
+      "sourceSize": {
+        "w": 48,
+        "h": 48
+      }
+    },
+    "decor-fern": {
+      "frame": {
+        "x": 202,
+        "y": 502,
+        "w": 48,
+        "h": 48
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 48,
+        "h": 48
+      },
+      "sourceSize": {
+        "w": 48,
+        "h": 48
+      }
+    },
+    "decor-shell": {
+      "frame": {
+        "x": 302,
+        "y": 502,
+        "w": 48,
+        "h": 48
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 48,
+        "h": 48
+      },
+      "sourceSize": {
+        "w": 48,
+        "h": 48
+      }
+    },
+    "decor-starfish": {
+      "frame": {
+        "x": 402,
+        "y": 502,
+        "w": 48,
+        "h": 48
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 48,
+        "h": 48
+      },
+      "sourceSize": {
+        "w": 48,
+        "h": 48
+      }
+    },
+    "decor-seaweed": {
+      "frame": {
+        "x": 502,
+        "y": 502,
+        "w": 48,
+        "h": 48
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 48,
+        "h": 48
+      },
+      "sourceSize": {
+        "w": 48,
+        "h": 48
+      }
+    },
+    "decor-fish": {
+      "frame": {
+        "x": 602,
+        "y": 502,
+        "w": 48,
+        "h": 48
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 48,
+        "h": 48
+      },
+      "sourceSize": {
+        "w": 48,
+        "h": 48
+      }
+    },
+    "bubble-ring": {
+      "frame": {
+        "x": 702,
+        "y": 502,
+        "w": 48,
+        "h": 48
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 48,
+        "h": 48
+      },
+      "sourceSize": {
+        "w": 48,
+        "h": 48
+      }
+    },
+    "bubble-ring-0": {
+      "frame": {
+        "x": 802,
+        "y": 502,
+        "w": 48,
+        "h": 48
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 48,
+        "h": 48
+      },
+      "sourceSize": {
+        "w": 48,
+        "h": 48
+      }
+    },
+    "bubble-ring-1": {
+      "frame": {
+        "x": 902,
+        "y": 502,
+        "w": 48,
+        "h": 48
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 48,
+        "h": 48
+      },
+      "sourceSize": {
+        "w": 48,
+        "h": 48
+      }
+    },
+    "bubble-ring-2": {
+      "frame": {
+        "x": 2,
+        "y": 602,
+        "w": 48,
+        "h": 48
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 48,
+        "h": 48
+      },
+      "sourceSize": {
+        "w": 48,
+        "h": 48
+      }
+    },
+    "bubble-ring-3": {
+      "frame": {
+        "x": 102,
+        "y": 602,
+        "w": 48,
+        "h": 48
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 48,
+        "h": 48
+      },
+      "sourceSize": {
+        "w": 48,
+        "h": 48
+      }
+    },
+    "bubble": {
+      "frame": {
+        "x": 202,
+        "y": 602,
+        "w": 16,
+        "h": 16
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 16,
+        "h": 16
+      },
+      "sourceSize": {
+        "w": 16,
+        "h": 16
+      }
+    },
+    "laser-enemy": {
+      "frame": {
+        "x": 302,
+        "y": 602,
+        "w": 48,
+        "h": 48
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 48,
+        "h": 48
+      },
+      "sourceSize": {
+        "w": 48,
+        "h": 48
+      }
+    },
+    "mortar-enemy": {
+      "frame": {
+        "x": 402,
+        "y": 602,
         "w": 48,
         "h": 48
       },
@@ -802,8 +1302,8 @@
     },
     "boss-0-gray": {
       "frame": {
-        "x": 2,
-        "y": 210,
+        "x": 502,
+        "y": 602,
         "w": 48,
         "h": 48
       },
@@ -822,8 +1322,8 @@
     },
     "boss-1-gray": {
       "frame": {
-        "x": 54,
-        "y": 210,
+        "x": 602,
+        "y": 602,
         "w": 48,
         "h": 48
       },
@@ -842,8 +1342,8 @@
     },
     "boss-2-gray": {
       "frame": {
-        "x": 106,
-        "y": 210,
+        "x": 702,
+        "y": 602,
         "w": 48,
         "h": 48
       },
@@ -862,8 +1362,8 @@
     },
     "boss-3-gray": {
       "frame": {
-        "x": 158,
-        "y": 210,
+        "x": 802,
+        "y": 602,
         "w": 48,
         "h": 48
       },
@@ -882,8 +1382,8 @@
     },
     "note-enemy-gray": {
       "frame": {
-        "x": 210,
-        "y": 210,
+        "x": 902,
+        "y": 602,
         "w": 48,
         "h": 48
       },
@@ -902,8 +1402,48 @@
     },
     "elite-gray": {
       "frame": {
-        "x": 262,
-        "y": 210,
+        "x": 2,
+        "y": 702,
+        "w": 48,
+        "h": 48
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 48,
+        "h": 48
+      },
+      "sourceSize": {
+        "w": 48,
+        "h": 48
+      }
+    },
+    "laser-enemy-gray": {
+      "frame": {
+        "x": 102,
+        "y": 702,
+        "w": 48,
+        "h": 48
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 48,
+        "h": 48
+      },
+      "sourceSize": {
+        "w": 48,
+        "h": 48
+      }
+    },
+    "mortar-enemy-gray": {
+      "frame": {
+        "x": 202,
+        "y": 702,
         "w": 48,
         "h": 48
       },
@@ -927,8 +1467,8 @@
     "image": "atlas.png",
     "format": "RGBA8888",
     "size": {
-      "w": 520,
-      "h": 260
+      "w": 1000,
+      "h": 800
     },
     "scale": "1"
   }

@@ -1,4 +1,4 @@
-// 敌人、场景和道具的离线像素源。五个可玩角色使用参考原图抠图，不在此绘制。
+// 敌人、场景和道具的离线像素源。五个可玩角色使用独立ImageGen头像，不在此绘制。
 export const SIZE = 48;
 export const palette = {
   ink: '#483735', deep: '#302d34', paper: '#fff7e7', white: '#fffdf1', shade: '#e9d7bb',
@@ -130,6 +130,39 @@ function tree() {
   return c;
 }
 
+function biomeTree(kind) {
+  const c = new PixelCanvas(); shadow(c, 43, 34);
+  if (kind === 'beach') {
+    c.polygon([[22, 15], [29, 15], [26, 28], [29, 43], [19, 43], [21, 28]], P.darkBrown);
+    c.polygon([[24, 18], [27, 18], [24, 28], [26, 41], [22, 41], [23, 28]], '#bd925a');
+    c.line(22, 26, 26, 25, '#796746'); c.line(22, 33, 25, 32, '#796746'); c.line(23, 39, 26, 38, '#796746');
+    const fronds = [
+      [[24, 17], [14, 8], [4, 9], [1, 18], [12, 15], [23, 20]],
+      [[25, 17], [33, 7], [43, 8], [47, 17], [36, 14], [26, 20]],
+      [[24, 17], [17, 2], [10, 4], [16, 13], [22, 20]],
+      [[25, 17], [29, 1], [36, 4], [32, 13], [27, 21]],
+      [[24, 18], [10, 17], [4, 25], [16, 22], [24, 21]],
+      [[25, 18], [38, 17], [44, 25], [33, 22], [25, 21]],
+    ];
+    fronds.forEach(points => c.polygon(points, P.darkGreen));
+    c.line(6, 12, 23, 18, P.leaf, 2); c.line(28, 18, 40, 11, P.leaf, 2);
+    c.line(14, 5, 23, 17, P.green); c.line(32, 5, 27, 17, P.green);
+    [[17, 19], [26, 20]].forEach(([x, y]) => { c.oval(x, y, 7, 7, P.red); c.rect(x + 1, y + 1, 2, 2, P.coral); c.rect(x + 3, y - 1, 2, 2, P.brown); });
+  } else {
+    // 高而分叉的珊瑚主体，区别于只贴地的小海草。
+    const branches = [[24, 42, 23, 10, 8], [22, 31, 11, 24, 7], [12, 25, 10, 14, 6], [24, 27, 35, 20, 7], [35, 22, 38, 9, 6], [23, 19, 16, 10, 5]];
+    branches.forEach(([x0, y0, x1, y1, width]) => c.line(x0 - width / 2, y0, x1 - width / 2, y1, '#71515e', width));
+    branches.forEach(([x0, y0, x1, y1, width]) => c.line(x0 - width / 2 + 1, y0, x1 - width / 2 + 1, y1, '#b97983', width - 2));
+    c.line(22, 38, 21, 12, '#dba0a1', 2); c.line(10, 23, 9, 16, '#dba0a1', 2); c.line(36, 19, 38, 10, '#dba0a1', 2);
+    c.ellipse(11, 38, 29, 7, '#4b7970'); c.ellipse(15, 38, 21, 5, '#67988a');
+    [[6, 19], [28, 11], [24, 29]].forEach(([x, y]) => {
+      c.ellipse(x - 1, y - 1, 12, 12, '#b5ebedb8'); c.ellipse(x, y, 10, 10, '#80c4cc24');
+      c.oval(x + 2, y + 2, 6, 6, P.red); c.rect(x + 3, y + 3, 2, 1, P.coral); c.rect(x + 5, y, 2, 2, P.darkGreen); c.rect(x + 1, y + 1, 2, 1, P.white);
+    });
+  }
+  return c;
+}
+
 function barrel() {
   const c=new PixelCanvas(); shadow(c,42,28);
   c.oval(10,12,28,31,'#a9523d',P.ink,2); c.rect(12,15,24,22,'#b76444');
@@ -198,17 +231,117 @@ function flower(variant) {
   const c=new PixelCanvas();const cols=[P.paper,P.pink,P.gold];c.line(23,24,23,39,P.darkGreen,2);c.ellipse(16,29,8,4,P.leaf);c.ellipse(24,32,7,4,P.leaf);[[20,17],[25,17],[18,22],[27,22],[22,26]].forEach(([x,y])=>c.ellipse(x,y,6,6,cols[variant]));c.ellipse(22,21,6,6,P.goldDark);return c;
 }
 
+// 地面不画砖边；跨边界的小色块用取模落点，平铺后不会出现切断的边线。
+function terrain(kind, variant = 0) {
+  const c = new PixelCanvas(96, 96);
+  const colors = {
+    grass: ['#8ca372', '#91a878', '#81996b', '#9bb17e'],
+    forest: ['#617b53', '#6b8259', '#59734e', '#778a60'],
+    beach: ['#dec58f', '#e5ce9c', '#d2bb85', '#ecd8aa'],
+    sea: ['#619ca2', '#6aa5a9', '#548f98', '#83b1b5']
+  }[kind];
+  c.rect(0, 0, 96, 96, colors[variant ? 2 : 0]);
+  const pixel = (x, y, color) => c.pixel((x % 96 + 96) % 96, (y % 96 + 96) % 96, color);
+  const fleck = (x, y, w, h, color) => { for (let dy = 0; dy < h; dy++) for (let dx = 0; dx < w; dx++) pixel(x + dx, y + dy, color); };
+  for (let i = 0; i < 26; i++) {
+    const x = (i * 37 + variant * 19) % 96, y = (i * 23 + Math.floor(i / 5) * 11 + variant * 17) % 96;
+    const width = 3 + (i * 7) % 10;
+    fleck(x, y, width, 1 + i % 2, colors[i % 3 + 1]);
+    if (i % 3 === 0) fleck(x + 2, y + 2, Math.max(2, width - 4), 1, colors[i % 2 + 1]);
+  }
+  for (let i = 0; i < 35; i++) pixel((i * 43 + variant * 7) % 96, (i * 17 + 9 + variant * 29) % 96, colors[(i % 3) + 1]);
+  if (kind === 'sea') {
+    for (let i = 0; i < 7; i++) {
+      const x = (i * 31 + variant * 23) % 96, y = (i * 19 + variant * 11) % 96;
+      fleck(x, y + 1, 4, 1, '#87b4b8'); fleck(x + 4, y, 7, 1, '#87b4b8'); fleck(x + 11, y + 1, 4, 1, '#77aaaf');
+    }
+  } else if (kind === 'beach') {
+    for (let i = 0; i < 10; i++) { const x = (i * 29 + variant * 13) % 96, y = (i * 31 + 7) % 96; fleck(x, y, 7, 1, '#d5be8a'); fleck(x + 3, y + 2, 7, 1, '#ead5a4'); }
+  }
+  return c;
+}
+
+function environment(name) {
+  const c = new PixelCanvas();
+  switch (name) {
+    case 'grass':
+      c.line(15, 36, 11, 29, '#68834f', 2); c.line(21, 37, 20, 26, '#78935a', 2); c.line(25, 37, 29, 25, '#66814f', 2); c.line(30, 36, 35, 30, '#819b62', 2);
+      c.rect(14, 36, 18, 2, '#6b8553'); break;
+    case 'bush':
+      // 低矮、没有树干的贴地叶丛，避免与可破坏苹果树相混。
+      c.ellipse(6, 28, 37, 11, '#506d44'); c.ellipse(9, 24, 17, 12, '#6e8851'); c.ellipse(21, 23, 17, 13, '#728c55'); c.rect(13, 27, 7, 2, '#839961'); c.rect(29, 26, 5, 2, '#839961'); break;
+    case 'fern':
+      c.line(23, 39, 24, 20, '#446540', 2);
+      for (let i = 0; i < 5; i++) { c.line(24, 22 + i * 3, 17 - i, 19 + i * 3, '#78915c', 2); c.line(25, 24 + i * 3, 30 + i, 21 + i * 3, '#69864f', 2); } break;
+    case 'shell':
+      c.ellipse(10, 35, 27, 4, '#bca37588'); c.polygon([[11, 33], [12, 26], [17, 21], [23, 19], [30, 22], [35, 28], [36, 34]], '#b7997d');
+      c.polygon([[13, 32], [15, 26], [18, 23], [23, 21], [29, 24], [33, 29], [34, 33]], '#eedabb');
+      c.line(23, 23, 23, 33, '#d4b697'); c.line(18, 26, 21, 33, '#d4b697'); c.line(28, 26, 25, 33, '#d4b697'); c.rect(15, 33, 18, 2, '#c4a486'); break;
+    case 'starfish':
+      c.polygon([[24, 15], [28, 23], [37, 24], [30, 29], [32, 38], [24, 33], [16, 38], [18, 29], [11, 24], [20, 23]], '#b87765');
+      c.polygon([[24, 19], [26, 26], [32, 26], [27, 29], [28, 33], [24, 30], [20, 33], [21, 28], [16, 26], [22, 26]], '#d89a7e'); c.rect(23, 26, 3, 3, '#e7b291'); break;
+    case 'seaweed':
+      c.line(15, 40, 16, 31, '#39766d', 3); c.line(16, 31, 12, 23, '#39766d', 3); c.line(12, 23, 15, 16, '#39766d', 3);
+      c.line(24, 40, 26, 28, '#4c8a78', 3); c.line(26, 28, 23, 19, '#4c8a78', 3); c.line(23, 19, 26, 11, '#4c8a78', 3);
+      c.line(32, 40, 30, 32, '#34746e', 3); c.line(30, 32, 34, 24, '#34746e', 3); c.line(34, 24, 32, 18, '#34746e', 3); c.rect(12, 40, 23, 2, '#3b776d'); break;
+    case 'fish':
+      c.polygon([[8, 22], [17, 27], [8, 33]], '#447b88'); c.oval(15, 18, 24, 17, '#91b7b6', '#477c88');
+      c.ellipse(17, 19, 15, 8, '#a8cbca'); c.polygon([[22, 18], [27, 13], [30, 19]], '#6d9f9f'); c.polygon([[23, 33], [29, 38], [32, 32]], '#6d9f9f'); c.rect(33, 23, 3, 3, '#3b626d'); c.pixel(33, 23, '#d7e4d8'); break;
+  }
+  return c;
+}
+
+function bubbleRing(frame = 0) {
+  const c = new PixelCanvas();
+  c.ellipse(1, 1, 46, 46, '#325f8488'); c.ellipse(3, 3, 42, 42, '#b5ebedb8'); c.ellipse(5, 5, 38, 38, '#00000000');
+  c.ellipse(7, 7, 34, 34, '#9fdbdf14');
+  c.rect(9, 8, 7, 2, '#e8fff1d0'); c.rect(7, 10, 3, 5, '#e8fff1d0'); c.rect(6, 15, 2, 5, '#d2f6f2b0');
+  c.rect(33, 36, 5, 2, '#9dd4e2b0'); c.rect(38, 30, 2, 5, '#9dd4e2b0');
+  const sparkle = [[36, 11], [38, 14], [35, 9], [37, 12]][frame];
+  c.rect(sparkle[0], sparkle[1], 3, 3, '#fffbe3e0');
+  return c;
+}
+
+function bubble() {
+  const c = new PixelCanvas(16, 16);
+  c.ellipse(1, 1, 14, 14, '#36698c80'); c.ellipse(2, 2, 12, 12, '#b3edf2c0'); c.ellipse(4, 4, 8, 8, '#b2e1ed18');
+  c.rect(4, 3, 4, 1, '#f1fff5f0'); c.rect(3, 4, 2, 3, '#e4fff5e0'); c.rect(10, 11, 2, 1, '#c1edeee0');
+  return c;
+}
+
+function specialEnemy(kind) {
+  const c = new PixelCanvas(); shadow(c, 43, 29);
+  if (kind === 'laser') {
+    c.polygon([[10, 21], [15, 12], [33, 12], [40, 21], [36, 36], [12, 36]], P.ink);
+    c.polygon([[12, 22], [17, 14], [31, 14], [37, 22], [33, 33], [15, 33]], P.purpleDark);
+    c.rect(17, 16, 14, 3, P.purple); c.oval(14, 20, 23, 14, P.redDark, P.ink, 2); c.ellipse(18, 22, 15, 9, P.coral); c.rect(21, 23, 7, 5, P.gold); c.rect(23, 23, 3, 5, P.white);
+    c.rect(21, 7, 7, 5, P.ink); c.rect(23, 4, 3, 5, P.pinkDark); c.rect(22, 3, 5, 2, P.pink); c.box(7, 31, 8, 9, P.purpleDark); c.box(33, 31, 8, 9, P.purpleDark); c.rect(14, 38, 7, 5, P.ink); c.rect(27, 38, 7, 5, P.ink);
+  } else {
+    c.oval(9, 20, 31, 23, '#6d8e92', P.ink, 2); c.ellipse(12, 22, 25, 13, '#88a3a1');
+    c.polygon([[20, 26], [16, 8], [29, 4], [36, 23]], P.ink); c.polygon([[22, 22], [19, 10], [27, 8], [32, 22]], P.blueDark);
+    c.oval(15, 3, 17, 11, P.deep, P.ink, 2); c.ellipse(18, 6, 10, 5, '#1c353d'); c.rect(20, 13, 12, 4, P.redDark);
+    c.box(7, 31, 35, 8, '#587277'); c.rect(11, 33, 7, 3, P.gold); c.rect(31, 33, 7, 3, P.gold);
+    c.rect(17, 25, 4, 3, P.deep); c.rect(29, 25, 4, 3, P.deep); c.pixel(17, 25, P.paper); c.pixel(29, 25, P.paper); c.rect(12, 40, 9, 4, P.ink); c.rect(29, 40, 9, 4, P.ink);
+  }
+  return c;
+}
+
 export function buildSprites() {
   const sprites=[];
   const add=(name,canvas)=>sprites.push({name,width:canvas.width,height:canvas.height,data:canvas.data});
   for(let f=0;f<4;f++)add(`boss-${f}`,boss(f));
   add('cookie-enemy',cookieEnemy('normal'));add('note-enemy',noteEnemy());add('charger',cookieEnemy('charger'));add('elite',cookieEnemy('elite'));add('exploder',cookieEnemy('exploder'));add('tree',tree());add('barrel',barrel());
+  add('tree-beach', biomeTree('beach')); add('tree-water', biomeTree('water'));
   add('apple',apple());add('cookie',cookie());add('coin',coin());add('hat',hat());add('bow',bow());add('lamp',lamp());
   for(const name of ['heart-icon','shield','xp','star','boots','magnet','ring','clover','projectile','enemy-shot','pixel','heal-potion','blast','sword','book','signal-icon'])add(name,icon(name));
   for(let i=0;i<4;i++)add(`grass-${i}`,grass(i));
   for(let i=0;i<3;i++)add(`flower-${i}`,flower(i));
+  for (const kind of ['grass', 'forest', 'beach', 'sea']) { add(`terrain-${kind}`, terrain(kind)); add(`terrain-${kind}-1`, terrain(kind, 1)); }
+  for (const name of ['grass', 'bush', 'fern', 'shell', 'starfish', 'seaweed', 'fish']) add(`decor-${name}`, environment(name));
+  add('bubble-ring', bubbleRing()); for (let i = 0; i < 4; i++) add(`bubble-ring-${i}`, bubbleRing(i));
+  add('bubble', bubble()); add('laser-enemy', specialEnemy('laser')); add('mortar-enemy', specialEnemy('mortar'));
   // 灰度副本在构建阶段生成，精英死亡不在玩家浏览器中烘焙纹理。
-  for(const sprite of sprites.filter(s=>['elite','note-enemy','boss-0','boss-1','boss-2','boss-3'].includes(s.name))){
+  for(const sprite of sprites.filter(s=>['elite','note-enemy','laser-enemy','mortar-enemy','boss-0','boss-1','boss-2','boss-3'].includes(s.name))){
     const data=new Uint8Array(sprite.data);
     for(let i=0;i<data.length;i+=4){const v=Math.round(data[i]*.3+data[i+1]*.59+data[i+2]*.11);data[i]=v;data[i+1]=v;data[i+2]=v;}
     sprites.push({...sprite,name:`${sprite.name}-gray`,data});

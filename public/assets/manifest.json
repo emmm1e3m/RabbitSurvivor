@@ -6,10 +6,28 @@
       "data": "assets/atlas.json"
     }
   },
-  "frameSize": [
+  "defaultFrameSize": [
     48,
     48
   ],
+  "terrain": {
+    "grass": [
+      "terrain-grass",
+      "terrain-grass-1"
+    ],
+    "forest": [
+      "terrain-forest",
+      "terrain-forest-1"
+    ],
+    "beach": [
+      "terrain-beach",
+      "terrain-beach-1"
+    ],
+    "sea": [
+      "terrain-sea",
+      "terrain-sea-1"
+    ]
+  },
   "animations": {
     "boss": {
       "idle": [
@@ -23,6 +41,15 @@
         "boss-3"
       ],
       "frameRate": 7
+    },
+    "bubbleRing": {
+      "idle": [
+        "bubble-ring-0",
+        "bubble-ring-1",
+        "bubble-ring-2",
+        "bubble-ring-3"
+      ],
+      "frameRate": 5
     }
   },
   "palette": {
@@ -65,6 +92,8 @@
     "exploder",
     "tree",
     "barrel",
+    "tree-beach",
+    "tree-water",
     "apple",
     "cookie",
     "coin",
@@ -94,11 +123,36 @@
     "flower-0",
     "flower-1",
     "flower-2",
+    "terrain-grass",
+    "terrain-grass-1",
+    "terrain-forest",
+    "terrain-forest-1",
+    "terrain-beach",
+    "terrain-beach-1",
+    "terrain-sea",
+    "terrain-sea-1",
+    "decor-grass",
+    "decor-bush",
+    "decor-fern",
+    "decor-shell",
+    "decor-starfish",
+    "decor-seaweed",
+    "decor-fish",
+    "bubble-ring",
+    "bubble-ring-0",
+    "bubble-ring-1",
+    "bubble-ring-2",
+    "bubble-ring-3",
+    "bubble",
+    "laser-enemy",
+    "mortar-enemy",
     "boss-0-gray",
     "boss-1-gray",
     "boss-2-gray",
     "boss-3-gray",
     "note-enemy-gray",
-    "elite-gray"
+    "elite-gray",
+    "laser-enemy-gray",
+    "mortar-enemy-gray"
   ]
 }

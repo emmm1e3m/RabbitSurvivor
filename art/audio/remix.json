@@ -1,0 +1,408 @@
+{
+  "source": "archive/prototype-2026-11-04/public/audio/bgm.mp3",
+  "output": "public/audio/orchard-futurebass.mp3",
+  "tempoRatio": 1.25,
+  "sourceDuration": 152.9991836734694,
+  "rawDetectedBpm": 119.9,
+  "estimatedSourceBpm": 120,
+  "targetBpm": 150,
+  "beatPhaseSourceSeconds": 0.3980000000000003,
+  "loopBars": 76,
+  "loopSeconds": 121.60000000000001,
+  "trimmedToBarBoundary": true,
+  "sourceTempoCandidates": [
+    {
+      "bpm": 119.9,
+      "score": 1.190417381404479
+    },
+    {
+      "bpm": 80,
+      "score": 0.9226407332097444
+    },
+    {
+      "bpm": 96.1,
+      "score": 0.46412351259768103
+    },
+    {
+      "bpm": 159.7,
+      "score": 0.4611989969176152
+    },
+    {
+      "bpm": 87,
+      "score": 0.27951163716332417
+    },
+    {
+      "bpm": 180,
+      "score": 0.14185149537453834
+    }
+  ],
+  "chords": [
+    {
+      "bar": 1,
+      "name": "Am"
+    },
+    {
+      "bar": 2,
+      "name": "Am7"
+    },
+    {
+      "bar": 3,
+      "name": "G"
+    },
+    {
+      "bar": 4,
+      "name": "C(add9)"
+    },
+    {
+      "bar": 5,
+      "name": "Am(add9)"
+    },
+    {
+      "bar": 6,
+      "name": "Am7(add9)"
+    },
+    {
+      "bar": 7,
+      "name": "G"
+    },
+    {
+      "bar": 8,
+      "name": "Am7(add9)"
+    },
+    {
+      "bar": 9,
+      "name": "Am"
+    },
+    {
+      "bar": 10,
+      "name": "C"
+    },
+    {
+      "bar": 11,
+      "name": "Am"
+    },
+    {
+      "bar": 12,
+      "name": "Em(add9)"
+    },
+    {
+      "bar": 13,
+      "name": "Em7(add9)"
+    },
+    {
+      "bar": 14,
+      "name": "Am7"
+    },
+    {
+      "bar": 15,
+      "name": "Am"
+    },
+    {
+      "bar": 16,
+      "name": "Em(add9)"
+    },
+    {
+      "bar": 17,
+      "name": "Em7(add9)"
+    },
+    {
+      "bar": 18,
+      "name": "Em(add9)"
+    },
+    {
+      "bar": 19,
+      "name": "Fmaj7(add9)"
+    },
+    {
+      "bar": 20,
+      "name": "Em(add9)"
+    },
+    {
+      "bar": 21,
+      "name": "Em"
+    },
+    {
+      "bar": 22,
+      "name": "Em(add9)"
+    },
+    {
+      "bar": 23,
+      "name": "C"
+    },
+    {
+      "bar": 24,
+      "name": "Em(add9)"
+    },
+    {
+      "bar": 25,
+      "name": "Em(add9)"
+    },
+    {
+      "bar": 26,
+      "name": "Fmaj7(add9)"
+    },
+    {
+      "bar": 27,
+      "name": "Fmaj7(add9)"
+    },
+    {
+      "bar": 28,
+      "name": "Gmaj7"
+    },
+    {
+      "bar": 29,
+      "name": "Em"
+    },
+    {
+      "bar": 30,
+      "name": "Am7(add9)"
+    },
+    {
+      "bar": 31,
+      "name": "Fmaj7(add9)"
+    },
+    {
+      "bar": 32,
+      "name": "Gmaj7"
+    },
+    {
+      "bar": 33,
+      "name": "Em"
+    },
+    {
+      "bar": 34,
+      "name": "Am7"
+    },
+    {
+      "bar": 35,
+      "name": "Fmaj7(add9)"
+    },
+    {
+      "bar": 36,
+      "name": "Em"
+    },
+    {
+      "bar": 37,
+      "name": "E"
+    },
+    {
+      "bar": 38,
+      "name": "Am"
+    },
+    {
+      "bar": 39,
+      "name": "Fmaj7"
+    },
+    {
+      "bar": 40,
+      "name": "Em"
+    },
+    {
+      "bar": 41,
+      "name": "Em(maj7)"
+    },
+    {
+      "bar": 42,
+      "name": "Em"
+    },
+    {
+      "bar": 43,
+      "name": "Fmaj7(add9)"
+    },
+    {
+      "bar": 44,
+      "name": "Gmaj7"
+    },
+    {
+      "bar": 45,
+      "name": "Em(add9)"
+    },
+    {
+      "bar": 46,
+      "name": "Am7"
+    },
+    {
+      "bar": 47,
+      "name": "Fmaj7(add9)"
+    },
+    {
+      "bar": 48,
+      "name": "Gmaj7"
+    },
+    {
+      "bar": 49,
+      "name": "Em(add9)"
+    },
+    {
+      "bar": 50,
+      "name": "Fmaj7(add9)"
+    },
+    {
+      "bar": 51,
+      "name": "Fmaj7(add9)"
+    },
+    {
+      "bar": 52,
+      "name": "G"
+    },
+    {
+      "bar": 53,
+      "name": "Em"
+    },
+    {
+      "bar": 54,
+      "name": "Am7(add9)"
+    },
+    {
+      "bar": 55,
+      "name": "Fmaj7(add9)"
+    },
+    {
+      "bar": 56,
+      "name": "Gmaj7(add9)"
+    },
+    {
+      "bar": 57,
+      "name": "Em"
+    },
+    {
+      "bar": 58,
+      "name": "Am7(add9)"
+    },
+    {
+      "bar": 59,
+      "name": "Fmaj7(add9)"
+    },
+    {
+      "bar": 60,
+      "name": "Gmaj7"
+    },
+    {
+      "bar": 61,
+      "name": "Em7(add9)"
+    },
+    {
+      "bar": 62,
+      "name": "Am7(add9)"
+    },
+    {
+      "bar": 63,
+      "name": "Fmaj7(add9)"
+    },
+    {
+      "bar": 64,
+      "name": "Gmaj7"
+    },
+    {
+      "bar": 65,
+      "name": "Em7(add9)"
+    },
+    {
+      "bar": 66,
+      "name": "Em(add9)"
+    },
+    {
+      "bar": 67,
+      "name": "Am"
+    },
+    {
+      "bar": 68,
+      "name": "G"
+    },
+    {
+      "bar": 69,
+      "name": "Em"
+    },
+    {
+      "bar": 70,
+      "name": "G"
+    },
+    {
+      "bar": 71,
+      "name": "Am"
+    },
+    {
+      "bar": 72,
+      "name": "G(add9)"
+    },
+    {
+      "bar": 73,
+      "name": "G"
+    },
+    {
+      "bar": 74,
+      "name": "Bm"
+    },
+    {
+      "bar": 75,
+      "name": "Em7(add9)"
+    },
+    {
+      "bar": 76,
+      "name": "Fmaj7(add9)"
+    }
+  ],
+  "sourceRetro": {
+    "cleanLowCutoffHz": 300,
+    "melodyLowpassHz": 3200,
+    "wetLowpassHz": 5800,
+    "sampleHoldFrames": 4,
+    "sampleRateHz": 11025,
+    "bitDepth": 8,
+    "melodyWet": 0.92,
+    "melodyDry": 0.08,
+    "cleanLow": 0.85,
+    "highAir": 0.08,
+    "pulseLeadGain": 0.04
+  },
+  "sourceBranchRmsDbFS": {
+    "wetMelody": -21.561576329343993,
+    "dryMelody": -41.626632739232015,
+    "cleanLow": -24.140928276047312,
+    "highAir": -50.81433968266452
+  },
+  "encoded": {
+    "programs": [],
+    "stream_groups": [],
+    "streams": [
+      {
+        "sample_rate": "44100",
+        "channels": 2
+      }
+    ],
+    "format": {
+      "duration": "121.600000",
+      "bit_rate": "192093"
+    }
+  },
+  "measuredLoudness": {
+    "input_i": "-16.14",
+    "input_tp": "-1.73",
+    "input_lra": "3.70",
+    "input_thresh": "-26.15",
+    "output_i": "-16.28",
+    "output_tp": "-1.75",
+    "output_lra": "3.10",
+    "output_thresh": "-26.29",
+    "normalization_type": "dynamic",
+    "target_offset": "0.28"
+  },
+  "measurements": {
+    "decodedDuration": 121.6,
+    "samplePeakDbFS": -1.7358745688257338,
+    "rmsDbFS": -16.730208048457374,
+    "clippedSamples": 0,
+    "loopBoundaryStep": 0.0015373997739516199
+  },
+  "processing": [
+    "FFmpeg atempo=1.25, pitch preserved",
+    "Source-supported supersaw chord voicings; seventh/ninth only with chroma support",
+    "Beat-synchronized sidechain ducking and sub bass",
+    "Original melodic band: 92% wet 8bit / 11.025kHz sample hold, 8% dry; clean low band and reduced high air",
+    "Stronger 25%-duty pulse arpeggio lead",
+    "Synthesized kick, half-time snare and hats",
+    "8ms edge de-click and -16 LUFS / -1.5 dBTP target"
+  ],
+  "verification": "Tempo analysis is an estimate; no human listening assertion. Exact speed ratio comes from atempo.",
+  "loudnessCommand": "ffmpeg -i public/audio/orchard-futurebass.mp3 -af loudnorm=I=-16:TP=-1.5:LRA=9:print_format=json -f null -"
+}

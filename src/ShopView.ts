@@ -44,6 +44,7 @@ function purchaseState(session: Session, offer: ShopOffer): { disabled: boolean;
     if (def.kind === 'equipment' && (session.equipment[def.id] ?? 0) >= def.maxStacks) return { disabled: true, label: '已达上限', sold: false };
     if (def.maxPerRun !== undefined && (session.acquired[def.id] ?? 0) >= def.maxPerRun) return { disabled: true, label: '本局已获得', sold: false };
     if (def.kind === 'consumable' && !session.inventory.includes(null)) return { disabled: true, label: '道具栏已满', sold: false };
+    if (def.kind === 'equipment' && !session.canAcquireItem(def.id)) return { disabled: true, label: '已达属性上限', sold: false };
   }
   if (session.player.coins < offer.price) return { disabled: true, label: `还差 ${Math.ceil(offer.price - session.player.coins)} 币`, sold: false };
   return { disabled: false, label: '买下', sold: false };
@@ -59,7 +60,7 @@ function renderCard(session: Session, offer: ShopOffer, icon: IconRenderer): str
   return `<article class="shop-card${state.sold ? ' sold' : ''}">
     <header class="shop-card-header">
       ${icon(def?.icon ?? 'sword', 56)}
-      <button class="shop-info-button" type="button" data-info-kind="${infoKind}" data-info-id="${escapeHtml(infoId)}" aria-label="查看${escapeHtml(offer.name)}详情">i</button>
+      <button class="info-button shop-info-button" type="button" data-info-kind="${infoKind}" data-info-id="${escapeHtml(infoId)}" aria-label="查看${escapeHtml(offer.name)}详情">i</button>
     </header>
     <h3>${escapeHtml(offer.name)}</h3>
     <span class="shop-card-kind">${kind}</span>
@@ -86,12 +87,12 @@ export function renderShop(session: Session, icon: IconRenderer): string {
   const used = session.inventory.filter(Boolean).length;
   return `<div class="shop-view">
     <div class="shop-toolbar">
-      <div><p class="shop-stage-label">第 ${session.wave} 波完成</p><p class="shop-balance">${icon('cookie', 36)}<strong>${Math.floor(session.player.coins)}</strong><span>饼干币</span></p></div>
+      <div><p class="shop-stage-label">第 ${session.wave} 波${session.stage.boss ? ' · 坏老板已击退' : '完成'}</p><p class="shop-balance">${icon('cookie', 36)}<strong>${Math.floor(session.player.coins)}</strong><span>饼干币</span></p></div>
       <p class="shop-capacity">道具栏 <strong>${used} / ${session.inventory.length}</strong></p>
     </div>
     <div class="shop-cards">${session.shop.map(offer => renderCard(session, offer, icon)).join('')}</div>
     ${renderOwned(session, icon)}
-    <footer class="shop-actions">
+    <footer class="shop-actions modal-actions">
       <button class="secondary" type="button" data-action="reroll" ${session.player.coins < session.rerollCost ? 'disabled' : ''}>换一批 <span class="shop-refresh-price">${session.rerollCost} 币</span></button>
       <button class="primary" type="button" data-action="next">下一波 <span class="action-key">Enter</span></button>
     </footer>

@@ -1,11 +1,13 @@
 import Phaser from 'phaser';
-import { Session, createProfile } from './game/Session';
-import { abilities, characters, items, upgrades, stages, enemies as enemyDefs, content } from './game/content';
-import type { CharacterId, InputState, Profile } from './game/types';
+import { Session } from './game/Session';
+import { buyTalent, normalizeProfile } from './game/MetaProgress';
+import { abilities, characters, items, stages, enemies as enemyDefs, content } from './game/content';
+import type { BiomeId, CharacterId, InputState, Profile } from './game/types';
 import { WorldScene } from './WorldScene';
 import { Sfx } from './audio';
 import { renderDetails } from './DetailsView';
 import { renderShop } from './ShopView';
+import { renderMeta } from './MetaView';
 import type { DetailKind } from './DetailsView';
 
 type Atlas = { frames: Record<string, { frame: { x: number; y: number; w: number; h: number } }>; meta: { size: { w: number; h: number } } };
@@ -15,24 +17,16 @@ const root = document.querySelector<HTMLDivElement>('#ui')!;
 const keys = new Set<string>();
 const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, n));
 
+const profileKey = 'survivor:profile:v2';
+function storedValue(key: string): unknown {
+  try { return JSON.parse(localStorage.getItem(key) ?? 'null'); } catch { return null; }
+}
+function persistProfile(profile: Profile): void {
+  try { localStorage.setItem(profileKey, JSON.stringify(profile)); } catch { /* 本次会话仍保留成长。 */ }
+}
 function readProfile(): Profile {
-  const profile = createProfile();
-  try {
-    const raw = localStorage.getItem('survivor:profile:v1');
-    if (raw) {
-      const data = JSON.parse(raw);
-      for (const key of ['bossWins', 'bestWave', 'totalRuns', 'totalKills'] as const) if (Number.isFinite(data[key])) profile[key] = clamp(Math.floor(data[key]), 0, 1_000_000);
-    } else {
-      // 迁移实际Boss击杀；旧版超时胜利不计作Boss通关。
-      const old = JSON.parse(localStorage.getItem('rabbit:meta:v1') ?? 'null')?.stats;
-      if (old) {
-        profile.bossWins = Math.max(0, Math.floor(old.totalBossKills ?? 0));
-        profile.bestWave = Math.max(0, Math.floor(old.bestWave ?? 0));
-        profile.totalRuns = Math.max(0, Math.floor(old.runs ?? 0));
-        profile.totalKills = Math.max(0, Math.floor((old.totalNormalKills ?? 0) + (old.totalEliteKills ?? 0)));
-      }
-    }
-  } catch { /* 存储不可用时仍可正常游玩。 */ }
+  const profile = normalizeProfile(storedValue(profileKey) ?? storedValue('survivor:profile:v1'), storedValue('rabbit:meta:v1'));
+  persistProfile(profile);
   return profile;
 }
 
@@ -52,25 +46,26 @@ class App {
   settings = readSettings();
   profile = readProfile();
   selected: CharacterId = 'classrep';
-  challenge = 0;
   private mode = '';
-  private info: 'help' | 'settings' | 'details' | null = null;
+  private info: 'help' | 'settings' | 'growth' | 'details' | null = null;
+  private detailReturn: 'growth' | null = null;
   private detail: { kind: DetailKind; id: string } | null = null;
   private resumeAfterInfo = false;
   private stick: InputState = { x: 0, y: 0 };
   private aim = { x: 1, y: 0 };
-  private firing = false;
-  private fireOnce = false;
+  private mouseFiring = false;
+  private touchFiring = false;
   private aimPointerId: number | null = null;
   private aimCenter = { x: 0, y: 0 };
   private pointerId: number | null = null;
   private stickCenter = { x: 0, y: 0 };
   private lastUi = 0;
   private lastInventory = '';
-  private savedResult: unknown = null;
+  private lastProgressRevision = -1;
   private lastWave = 0;
+  private growthScroll = 0;
   private toastTimer = 0;
-  private music = new Audio(`${base}audio/bgm.mp3`);
+  private music = new Audio(`${base}audio/orchard-futurebass.mp3`);
 
   constructor(private atlas: Atlas) {
     this.music.loop = true; this.music.volume = 0.22; this.music.preload = 'none';
@@ -80,7 +75,7 @@ class App {
     root.addEventListener('pointerdown', e => this.pointerDown(e));
     window.addEventListener('pointerdown', e => {
       if ((e.target as Element).tagName === 'CANVAS' && e.pointerType === 'mouse' && e.button === 0 && this.session?.phase === 'running' && !this.session.paused) {
-        this.updateMouseAim(e); this.firing = true;
+        this.updateMouseAim(e); this.mouseFiring = true;
       }
     });
     window.addEventListener('pointermove', e => this.pointerMove(e));
@@ -103,16 +98,11 @@ class App {
     const x = Number(keys.has('KeyD') || keys.has('ArrowRight')) - Number(keys.has('KeyA') || keys.has('ArrowLeft'));
     const y = Number(keys.has('KeyS') || keys.has('ArrowDown')) - Number(keys.has('KeyW') || keys.has('ArrowUp'));
     const movement = x || y ? { x, y } : this.stick;
-    const result = { ...movement, aimX: this.aim.x, aimY: this.aim.y, fire: this.firing || this.fireOnce, autoAim: this.settings.autoAim };
-    this.fireOnce = false;
-    return result;
+    return { ...movement, aimX: this.aim.x, aimY: this.aim.y, fire: this.mouseFiring || this.touchFiring, autoAim: this.settings.autoAim };
   }
   tick(): void {
     const s = this.session;
-    if (s?.result && this.savedResult !== s.result) {
-      this.savedResult = s.result; this.profile = s.result.profile;
-      try { localStorage.setItem('survivor:profile:v1', JSON.stringify(this.profile)); } catch { /* 不打断结算。 */ }
-    }
+    this.syncProgress();
     const mode = `${s?.phase ?? 'menu'}:${s?.paused ?? false}:${this.info}`;
     if (mode !== this.mode) this.render();
     if (s && performance.now() - this.lastUi > 80) {
@@ -128,36 +118,46 @@ class App {
     return `<span class="inline-icon ${extra}" aria-hidden="true" style="width:${size}px;height:${size}px;background-image:url('${base}assets/atlas.png');background-size:${this.atlas.meta.size.w * scale}px ${this.atlas.meta.size.h * scale}px;background-position:${-f.x * scale}px ${-f.y * scale}px"></span>`;
   }
   private header(): string {
-    return `<header class="app-header"><a class="brand" href="${base}" aria-label="幸存兔首页">${this.icon('goodrabbit-0', 40)}<span>幸存兔</span></a><div class="header-actions"><button class="subtle small" data-action="help">玩法指南</button><button class="subtle small" data-action="settings">设置</button></div></header>`;
+    return `<header class="app-header"><a class="brand" href="${base}" aria-label="幸存兔首页">${this.icon('goodrabbit-0', 40)}<span>幸存兔</span></a><div class="header-actions"><button class="secondary small" data-action="growth">成长</button><button class="subtle small" data-action="help">玩法指南</button><button class="subtle small" data-action="settings">设置</button></div></header>`;
+  }
+  private syncProgress(): void {
+    const s = this.session;
+    if (!s || s.progressRevision === this.lastProgressRevision) return;
+    this.lastProgressRevision = s.progressRevision;
+    this.profile = s.result?.profile ?? s.profileSnapshot;
+    persistProfile(this.profile);
   }
   private render(): void {
+    this.syncProgress();
+    const growth = root.querySelector<HTMLElement>('.growth-modal');
+    if (growth) this.growthScroll = growth.scrollTop;
     this.clearInput(); const s = this.session;
     this.mode = `${s?.phase ?? 'menu'}:${s?.paused ?? false}:${this.info}`;
     root.dataset.aimMode = this.settings.autoAim ? 'auto' : 'manual';
     document.body.dataset.aimMode = root.dataset.aimMode;
     document.body.dataset.reducedMotion = this.settings.shake ? "false" : "true";
     root.innerHTML = (!s ? this.header() + this.menu() : this.hud() + this.overlay()) + this.infoModal() + '<div class="toast" role="status"></div>';
+    if (this.info === 'growth') root.querySelector<HTMLElement>('.growth-modal')!.scrollTop = this.growthScroll;
     const shade = root.querySelector<HTMLElement>('.modal-shade');
     for (const child of Array.from(root.children)) (child as HTMLElement).inert = !!shade && child !== shade;
     this.lastInventory = ''; if (s) this.updateHud();
   }
   private menu(): string {
-    const chosen = characters[this.selected]; const ability = abilities[chosen.abilityId];
-    const unlocked = Math.min(3, this.profile.bossWins);
-    return `<main class="menu"><div class="menu-top"><div><p class="eyebrow">苹果园 · 清晨</p><h1 class="title">小小的你，<br>也能守住果园。</h1><p class="lead">带上苹果，和熟悉的伙伴一起对付坏老板。</p></div><div class="profile-summary">${this.icon('star', 40)}<strong>${this.profile.bossWins}</strong><span>次守护成功</span><small>道具栏 ${1 + Math.min(2, this.profile.bossWins)} 格 · 最佳第 ${Math.min(stages.length, this.profile.bestWave)} 波</small></div></div><div class="character-grid" role="group" aria-label="选择角色">${Object.values(characters).map(def => `<div class="character-option"><button class="character-card" data-character="${def.id}" aria-pressed="${this.selected === def.id}"><span class="portrait">${this.icon(`${def.initialForm}-0`, 96)}${def.forms.length > 1 ? this.icon('signal-0', 48, 'duo-friend') : ''}</span><strong class="character-title">${def.name}</strong><span class="character-flavor">${def.title}</span></button><button class="info-button" data-info-kind="character" data-info-id="${def.id}" aria-label="${def.name}的详情">i</button></div>`).join('')}</div><section class="selected-panel"><div class="selection-copy"><h2>${chosen.name}<span class="subtle"> / ${chosen.title}</span></h2><p>${chosen.description}</p><p class="ability-note">${this.icon(ability.icon, 28)}<strong>${ability.name}</strong><button class="info-button inline-info" data-info-kind="ability" data-info-id="${ability.id}" aria-label="${ability.name}的详情">i</button></p></div><div class="start-actions"><label class="challenge-control">挑战<select id="challenge" aria-label="挑战等级">${Array.from({ length: unlocked + 1 }, (_, i) => `<option value="${i}" ${this.challenge === i ? 'selected' : ''}>${i === 0 ? '轻松出发' : `挑战 ${i}`}</option>`).join('')}</select></label><button class="primary" data-action="start">出发！<span class="action-key">Enter</span></button></div></section><footer class="menu-footer"><span>WASD / 方向键选择 · 空格 / 回车确认</span></footer></main>`;
+    const chosen = characters[this.selected];
+    const skillIds = [...new Set(chosen.forms.map(form => chosen.formAbilities?.[form] ?? chosen.abilityId))];
+    return `<main class="menu"><div class="menu-top"><div><p class="eyebrow">苹果园 · 清晨</p><h1 class="title">小小的你，<br>也能守住果园。</h1><p class="lead">穿过草地、森林、沙地与水边，和伙伴一起对付坏老板。</p></div><div class="profile-summary">${this.icon('star', 40)}<strong>${this.profile.talentPoints}</strong><span>成长积分</span><small>道具栏 ${1 + Math.min(2, this.profile.bossWins)} 格 · 最佳第 ${this.profile.bestWave} 波</small></div></div><div class="character-grid" role="group" aria-label="选择角色">${Object.values(characters).map(def => `<div class="character-option"><button class="character-card" data-character="${def.id}" aria-pressed="${this.selected === def.id}"><span class="portrait">${this.icon(`${def.initialForm}-0`, 96)}${def.forms.length > 1 ? this.icon('signal-0', 48, 'duo-friend') : ''}</span><strong class="character-title">${def.name}</strong><span class="character-flavor">${def.title}</span></button><button class="info-button" data-info-kind="character" data-info-id="${def.id}" aria-label="${def.name}的详情">i</button></div>`).join('')}</div><section class="selected-panel"><div class="selection-copy"><h2>${chosen.name}的技能</h2>${skillIds.map(id => { const skill = abilities[id]; return `<p class="ability-note">${this.icon(skill.icon, 28)}<strong>${skill.name}</strong><button class="info-button inline-info" data-info-kind="ability" data-info-id="${skill.id}" aria-label="${skill.name}的详情">i</button></p>`; }).join('')}</div><div class="start-actions"><button class="primary" data-action="start">出发！<span class="action-key">Enter</span></button></div></section><footer class="menu-footer"><span>WASD / 方向键选择 · 空格 / 回车确认</span></footer></main>`;
   }
   private hud(): string {
     const s = this.session!;
-    return `<div class="hud"><div class="hud-left"><div class="health">${this.icon('heart-icon', 30)}<div><div class="hp-label" id="hp-label"></div><div class="meter"><div class="meter-fill" id="hp-fill"></div></div><div class="meter xp"><div class="meter-fill" id="xp-fill"></div></div></div></div><small id="player-status"></small></div><div class="hud-center"><strong id="wave-label"></strong><span id="wave-time"></span></div><div class="hud-right"><span class="coins">${this.icon('cookie', 30)}<strong id="coin-label"></strong></span><button class="small" data-action="pause" aria-label="暂停游戏">Ⅱ</button></div></div><div class="boss-hud" hidden><strong>坏老板</strong><div class="boss-meter"><div id="boss-fill"></div></div><span id="boss-hp"></span></div><div class="bottom-hud"><div class="inventory" id="equipment-summary"></div><span id="reload-label"></span></div><div class="touch-zone"><div class="joystick" id="joystick" role="group" aria-label="拖动摇杆移动"><div class="stick"></div></div></div><div class="aim-zone"><div class="aim-pad" id="aim-pad" role="group" aria-label="拖动瞄准，松手射击"><div class="aim-stick"></div><span class="aim-hint">瞄准 / 射击</span></div></div><div class="touch-actions"><button class="skill-button" data-action="skill">${this.icon(s.ability.icon, 40)}<span>${s.ability.name}</span><span class="cooldown" id="skill-cooldown"></span><span class="action-key">空格</span></button>${characters[s.characterId].forms.length > 1 ? `<button class="skill-button switch-button" data-action="switch">${this.icon(s.form === 'heart' ? 'signal-0' : 'heart-0', 40)}<span>切换伙伴</span><span class="cooldown" id="switch-cooldown"></span><span class="action-key">Q</span></button>` : ''}<div class="item-slots" id="item-slots"></div></div>`;
+    return `<div class="hud"><div class="hud-left"><div class="health">${this.icon('heart-icon', 30)}<div><div class="hp-label"><span>生命</span><strong id="hp-label"></strong></div><div class="meter"><div class="meter-fill" id="hp-fill"></div></div></div></div><div class="shield-status" id="shield-status"><span class="shield-icon">${this.icon('shield', 30)}</span><div><div class="shield-label"><span>护盾</span><strong id="shield-label"></strong></div><div class="meter shield-meter"><div class="meter-fill" id="shield-fill"></div></div></div></div><small id="player-status"></small></div><div class="hud-center"><strong id="wave-label"></strong><span id="wave-time"></span><span id="run-status"></span></div><div class="hud-right"><span class="coins">${this.icon('cookie', 30)}<strong id="coin-label"></strong></span><button class="small" data-action="pause" aria-label="暂停游戏">Ⅱ</button></div></div><div class="boss-hud" hidden><strong>坏老板</strong><div class="boss-meter"><div id="boss-fill"></div></div><span id="boss-hp"></span></div><div class="bottom-hud"><div class="inventory" id="equipment-summary"></div><span id="reload-label"></span></div><div class="touch-zone"><div class="joystick" id="joystick" role="group" aria-label="拖动摇杆移动"><div class="stick"></div></div></div><div class="aim-zone"><div class="aim-pad" id="aim-pad" role="group" aria-label="按住连续射击，拖动瞄准"><div class="aim-stick"></div><span class="aim-hint">按住射击</span></div></div><div class="touch-actions"><button class="skill-button" data-action="skill"><span class="action-art" id="skill-icon">${this.icon(s.ability.icon, 40)}</span><span id="skill-name">${s.ability.name}</span><span class="action-meter" id="skill-meter" role="progressbar" aria-label="技能冷却" aria-valuemin="0" aria-valuemax="100"><span class="action-fill" id="skill-fill"></span></span><span class="action-key">空格</span></button>${characters[s.characterId].forms.length > 1 ? `<button class="skill-button switch-button" data-action="switch"><span class="action-art" id="switch-icon">${this.icon(s.form === 'heart' ? 'signal-0' : 'heart-0', 40)}</span><span>切换伙伴</span><span class="action-meter" id="switch-meter" role="progressbar" aria-label="切换冷却" aria-valuemin="0" aria-valuemax="100"><span class="action-fill" id="switch-fill"></span></span><span class="action-key">Q</span></button>` : ''}<div class="item-slots" id="item-slots"></div></div>`;
   }
   private overlay(): string {
     const s = this.session!; if (this.info) return '';
-    if (s.paused) return this.modal('歇一小会儿', `<p class="lead">苹果已经收好，准备好了再继续。</p><div class="start-actions"><button class="primary" data-action="resume">继续冒险</button><button class="secondary" data-action="settings">声音与画面</button><button class="subtle" data-action="abandon">结束本局</button></div>`, 'paused-panel');
-    if (s.phase === 'upgrade') return this.modal('又成长了一点！', `<p class="lead">等级 ${s.player.level} · 选择一项，继续守护果园。</p><div class="cards upgrade-cards">${s.upgradeChoices.map((offer, i) => `<div class="upgrade-option"><button class="offer-card" data-upgrade="${offer.id}">${this.icon(upgrades[offer.id.split(':')[0]].icon, 64)}<span class="rarity">${offer.quality === 1.5 ? '金色灵感' : offer.quality === 1.2 ? '好点子' : '日常进步'}</span><h3>${offer.name}</h3><p>${this.upgradeDescription(offer.stat, offer.amount)}</p><span class="action-key">${i + 1}</span></button><button class="info-button" data-info-kind="upgrade" data-info-id="${offer.id}" aria-label="${offer.name}的详情">i</button></div>`).join('')}</div>`);
+    if (s.paused) return this.modal('歇一小会儿', `<p class="lead">苹果已经收好，准备好了再继续。</p><div class="modal-actions modal-actions--stack"><button class="primary" data-action="resume">继续冒险</button><button class="secondary" data-action="settings">声音与画面</button><button class="secondary danger" data-action="abandon">结束本局</button></div>`, 'paused-panel');
     if (s.phase === 'shop') return this.modal('果园小铺', renderShop(s, (name, size, extra) => this.icon(name, size, extra)), 'shop-modal');
     if (s.result) {
       const r = s.result;
-      return this.modal(r.victory ? '果园，守住啦！' : '下次会更勇敢', `<div class="result-portrait">${this.icon(`${s.form}-0`, 120)}${r.victory ? this.icon('star', 64) : ''}</div><p class="lead">${r.victory ? '坏老板已被击败。谢谢你和伙伴们的每一颗苹果。' : '带着这次的经验，再试一种搭配吧。'}</p><div class="result-stats"><div><strong>${r.wave}/${stages.length}</strong><span>抵达波次</span></div><div><strong>${r.kills}</strong><span>击败怪物</span></div><div><strong>${r.coinsEarned}</strong><span>收获饼干币</span></div><div><strong>${Math.floor(r.elapsed / 60)}:${Math.floor(r.elapsed % 60).toString().padStart(2, '0')}</strong><span>冒险时间</span></div></div>${r.victory ? `<p>${r.profile.bossWins <= 2 ? `背包多了一个小口袋，现在能装 ${1 + Math.min(2, r.profile.bossWins)} 件小道具。` : '果园又恢复了平静。下次，带上喜欢的伙伴再来吧。'}</p>` : ''}<div class="start-actions"><button class="primary" data-action="restart">再来一次</button><button class="secondary" data-action="menu">选择伙伴</button></div>`, 'result-modal');
+      return this.modal(r.reason === 'victory' ? '守住苹果园啦！' : r.reason === 'abandon' ? '先休息一下' : '下次会更勇敢', `<div class="result-portrait">${this.icon(`${s.form}-0`, 120)}</div><p class="lead">${r.reason === 'victory' ? '伙伴们终于可以放心摘苹果了。下次坏老板会带来更强的帮手。' : r.reason === 'abandon' ? '这趟冒险先到这里，下次再来看看。' : '在成长里学一点新本领，再和伙伴出发吧。'}</p><div class="result-stats"><div><strong>${r.wave}</strong><span>抵达波次</span></div><div><strong>+${r.talentPointsEarned}</strong><span>成长积分</span></div><div><strong>${r.bossesDefeated}</strong><span>击退坏老板</span></div><div><strong>${r.kills}</strong><span>击败怪物</span></div><div><strong>${r.coinsEarned}</strong><span>收获饼干币</span></div><div><strong>${Math.floor(r.elapsed / 60)}:${Math.floor(r.elapsed % 60).toString().padStart(2, '0')}</strong><span>冒险时间</span></div></div><div class="modal-actions"><button class="primary" data-action="restart">再来一次</button><button class="secondary" data-action="growth">成长</button><button class="secondary" data-action="menu">选择伙伴</button></div>`, 'result-modal');
     }
     return '';
   }
@@ -170,72 +170,93 @@ class App {
     if (!this.info) return '';
     const close = '<button class="close-button" data-action="close-info" aria-label="关闭">×</button>';
     if (this.info === 'details' && this.detail) {
-      const detail = renderDetails(this.detail.kind, this.detail.id, this.session, (name, size, extra) => this.icon(name, size, extra));
-      return this.modal(detail.title, `${close}${detail.body}<button class="primary" data-action="close-info">知道了</button>`, 'detail-modal');
+      const detail = renderDetails(this.detail.kind, this.detail.id, this.session, (name, size, extra) => this.icon(name, size, extra), this.profile);
+      return this.modal(detail.title, `${close}${detail.body}<footer class="modal-actions"><button class="primary" data-action="close-info">知道了</button></footer>`, 'detail-modal');
     }
+    if (this.info === 'growth') return this.modal('成长', `${close}${renderMeta(this.profile, (name, size, extra) => this.icon(name, size, extra))}<footer class="modal-actions"><button class="primary" data-action="close-info">完成</button></footer>`, 'growth-modal');
     if (this.info === 'settings') {
       const rows: [keyof Settings, string, string][] = [
-        ['autoAim', '自动索敌与开火', '开启时自动攻击附近目标。关闭后用鼠标瞄准、左键开火；手机拖动右摇杆瞄准，松手射击。'],
+        ['autoAim', '自动索敌与开火', '开启时自动攻击附近目标。关闭后用鼠标瞄准、按住左键连续射击；手机按住右摇杆连续射击，拖动瞄准。'],
         ['music', '果园背景音乐', '冒险时播放果园的旋律。'],
         ['sound', '攻击与按钮音效', '射击、命中、拾取与按钮的声音反馈。'],
         ['shake', '画面动态反馈', '攻击与受伤时的轻微震动，以及界面的呼吸和过渡动画。']
       ];
-      return this.modal('操作、声音与画面', `${close}<div class="settings">${rows.map(([key, title, description]) => `<label class="setting-row"><span class="setting-copy"><strong id="setting-${key}">${title}</strong><small id="setting-${key}-description">${description}</small></span><input class="setting-switch" role="switch" type="checkbox" aria-labelledby="setting-${key}" aria-describedby="setting-${key}-description" data-option="${key}" ${this.settings[key] ? 'checked' : ''}></label>`).join('')}</div><button class="primary" data-action="close-info">完成</button>`);
+      return this.modal('操作、声音与画面', `${close}<div class="settings">${rows.map(([key, title, description]) => `<label class="setting-row"><span class="setting-copy"><strong id="setting-${key}">${title}</strong><small id="setting-${key}-description">${description}</small></span><input class="setting-switch" role="switch" type="checkbox" aria-labelledby="setting-${key}" aria-describedby="setting-${key}-description" data-option="${key}" ${this.settings[key] ? 'checked' : ''}></label>`).join('')}</div><footer class="modal-actions"><button class="primary" data-action="close-info">完成</button></footer>`, 'settings-modal');
     }
     const instructions = [
-      ['boots', '选择适合你的操作', '默认自动寻找目标并开火。设置中可关闭：电脑WASD移动、鼠标瞄准左键射击；手机左摇杆移动、右摇杆瞄准松手射击。'],
+      ['boots', '选择适合你的操作', '默认自动寻找目标并开火。设置中可关闭：电脑WASD移动、鼠标瞄准、按住左键连续射击；手机左摇杆移动，按住右摇杆连续射击、拖动瞄准。'],
       ['ring', '把握技能时机', '空格或右下按钮使用技能。兔狗按 Q 切换伙伴；1 / 2 / 3 使用对应一次性道具。'],
-      ['hat', '长大，也要会搭配', '菜单支持WASD/方向键选择，空格/回车确认。升级和商店同样可用键盘；饰品在背包中展示。'],
-      ['lamp', '坏老板必须亲手打败', '普通波撑到结束；最后一波击败坏老板才能获胜。之后解锁更多道具栏和挑战。']
+      ['hat', '休整，再出发', '每波结束到小铺购买饰品、强化武器或补充道具。菜单和商店支持WASD/方向键选择，空格/回车确认。'],
+      ['star', '把勇气变成本领', `一趟冒险共 ${stages.length} 波，击退最后的坏老板即可获胜。成长积分为抵达波次 × 5，通关额外获得 10 积分；主动结束不获积分。回到成长页学习永久本领。`]
     ];
-    return this.modal('一起守住苹果园', `${close}<div class="instruction-grid">${instructions.map(([icon, title, text]) => `<div class="instruction-item">${this.icon(icon, 48)}<h3>${title}</h3><p>${text}</p></div>`).join('')}</div><button class="primary" data-action="close-info">知道啦</button>`);
+    return this.modal('一起守住苹果园', `${close}<div class="instruction-grid">${instructions.map(([icon, title, text]) => `<div class="instruction-item">${this.icon(icon, 48)}<h3>${title}</h3><p>${text}</p></div>`).join('')}</div><footer class="modal-actions"><button class="primary" data-action="close-info">知道啦</button></footer>`);
   }
   private updateHud(): void {
     const s = this.session!; const p = s.player;
     const text = (id: string, value: string) => { const e = document.getElementById(id); if (e && e.textContent !== value) e.textContent = value; };
+    const fill = (id: string, fraction: number) => { const e = document.getElementById(id); if (e) e.style.width = `${clamp(fraction * 100, 0, 100)}%`; };
     text('hp-label', `${Math.ceil(p.hp)} / ${Math.round(p.maxHp)}`);
-    document.getElementById('hp-fill')!.style.width = `${clamp(p.hp / p.maxHp * 100, 0, 100)}%`;
-    document.getElementById('xp-fill')!.style.width = `${clamp(p.xp / p.xpToNext * 100, 0, 100)}%`;
-    text('player-status', `Lv.${p.level}${p.shield > 0 ? ` · 盾 ${Math.ceil(p.shield)}` : ''}${p.invulnerable > 0 ? ` · 保护 ${p.invulnerable.toFixed(1)}s` : ''}`);
+    fill('hp-fill', p.hp / p.maxHp);
+    const shield = document.getElementById('shield-status');
+    if (shield) shield.hidden = p.maxShield <= 0 && p.shield <= 0;
+    text('shield-label', `${Math.ceil(p.shield)} / ${Math.round(Math.max(p.maxShield, p.shield))}`);
+    fill('shield-fill', p.shield / Math.max(1, p.maxShield, p.shield));
+    text('player-status', p.invulnerable > 0 ? '保护中' : '');
+    const biomeNames: Record<BiomeId, string> = { grass: '草地', forest: '森林', sand: '沙地', water: '水边' };
     text('coin-label', Math.floor(p.coins).toString()); text('wave-label', `第 ${s.wave} / ${stages.length} 波`);
-    text('wave-time', s.stage.boss && s.waveTime <= 0 ? '击败坏老板！' : `${Math.ceil(s.waveTime)}s · ${s.stage.name}`);
-    text('skill-cooldown', p.skillCooldown > 0 ? `${p.skillCooldown.toFixed(1)}s` : '准备好了');
-    text('switch-cooldown', s.switchCooldown > 0 ? `${s.switchCooldown.toFixed(1)}s` : s.form === 'heart' ? '信号狗' : '心好兔');
-    text('reload-label', `武器 Lv.${s.weaponLevel} · 击败 ${s.kills}`);
+    text('wave-time', s.stage.boss ? '坏老板来了' : `${Math.ceil(s.waveTime)} 秒`);
+    text('run-status', biomeNames[s.biome]);
+    const skillFraction = 1 - p.skillCooldown / Math.max(.001, p.skillMaxCooldown);
+    fill('skill-fill', skillFraction); fill('switch-fill', 1 - s.switchCooldown / 4);
+    document.getElementById('skill-meter')?.setAttribute('aria-valuenow', String(Math.round(clamp(skillFraction, 0, 1) * 100)));
+    document.getElementById('switch-meter')?.setAttribute('aria-valuenow', String(Math.round(clamp(1 - s.switchCooldown / 4, 0, 1) * 100)));
+    text('reload-label', `武器 Lv.${s.weaponLevel} · 击败 ${s.kills}${s.followers.length ? ` · 跟班 ${s.followers.length}` : ''}`);
     const boss = s.enemies.find(e => e.active && enemyDefs[e.kind].behavior === 'boss');
-    document.querySelector<HTMLElement>('.boss-hud')!.hidden = !boss;
-    if (boss) { document.getElementById('boss-fill')!.style.width = `${Math.max(0, boss.hp / boss.maxHp * 100)}%`; text('boss-hp', `${Math.ceil(boss.hp)} / ${Math.round(boss.maxHp)}`); }
-    const token = JSON.stringify([s.inventory, s.equipment, s.form]);
+    const bossHud = root.querySelector<HTMLElement>('.boss-hud'); if (bossHud) bossHud.hidden = !boss;
+    if (boss) { fill('boss-fill', boss.hp / boss.maxHp); text('boss-hp', `${Math.ceil(boss.hp)} / ${Math.round(boss.maxHp)}`); }
+    const token = JSON.stringify([s.inventory, s.equipment, s.form, s.ability.id]);
     if (token !== this.lastInventory) {
       this.lastInventory = token;
-      document.getElementById('equipment-summary')!.innerHTML = this.equipmentHtml();
-      document.getElementById('item-slots')!.innerHTML = s.inventory.map((id, i) => `<button class="item-button" data-item="${i}" aria-label="${id ? `使用${items[id].name}` : `道具栏${i + 1}，空`}" ${id ? '' : 'disabled'}>${id ? this.icon(items[id].icon, 36) : '<span class="empty-slot">＋</span>'}<span>${id ? items[id].name : '空位'}</span><span class="action-key">${i + 1}</span></button>`).join('');
+      const equipment = document.getElementById('equipment-summary'); if (equipment) equipment.innerHTML = this.equipmentHtml();
+      const slots = document.getElementById('item-slots');
+      if (slots) slots.innerHTML = s.inventory.map((id, i) => `<button class="item-button" data-item="${i}" aria-label="${id ? `使用${items[id].name}` : `道具栏${i + 1}，空`}" ${id ? '' : 'disabled'}>${id ? this.icon(items[id].icon, 36) : '<span class="empty-slot">＋</span>'}<span>${id ? items[id].name : '空位'}</span><span class="action-key">${i + 1}</span></button>`).join('');
+      const skillIcon = document.getElementById('skill-icon'); if (skillIcon) skillIcon.innerHTML = this.icon(s.ability.icon, 40);
+      text('skill-name', s.ability.name);
+      const switchIcon = document.getElementById('switch-icon'); if (switchIcon) switchIcon.innerHTML = this.icon(s.form === 'heart' ? 'signal-0' : 'heart-0', 40);
     }
+    const canAct = s.phase === 'running' && !s.paused;
     const skill = root.querySelector<HTMLButtonElement>('[data-action="skill"]');
-    if (skill) skill.disabled = p.skillCooldown > 0 || s.phase !== 'running' || s.paused;
-    skill?.classList.toggle('ready', p.skillCooldown <= 0 && s.phase === 'running' && !s.paused);
+    if (skill) skill.disabled = p.skillCooldown > 0 || !canAct;
+    skill?.classList.toggle('ready', p.skillCooldown <= 0 && canAct);
+    const switchButton = root.querySelector<HTMLButtonElement>('[data-action="switch"]');
+    if (switchButton) switchButton.disabled = s.switchCooldown > 0 || !canAct;
+    switchButton?.classList.toggle('ready', s.switchCooldown <= 0 && canAct);
     root.querySelector('.hud')?.classList.toggle('low-health', p.hp / p.maxHp < 0.3);
   }
-  private upgradeDescription(stat: string, amount: number): string {
-    const names: Record<string, string> = { damage: '苹果伤害', attackSpeed: '攻击速度', maxHp: '生命上限', armor: '护甲', regen: '每秒恢复', crit: '暴击率', moveSpeed: '移动速度' };
-    const value = ['damage', 'attackSpeed', 'crit', 'moveSpeed'].includes(stat) ? `${Math.round(amount * 100)}%` : amount.toFixed(stat === 'regen' ? 2 : 0);
-    return `${names[stat]} +${value}${stat === 'maxHp' ? '，并回复等量生命' : ''}`;
-  }
   private start(): void {
-    this.info = null; this.savedResult = null; this.lastWave = 0;
-    this.session = new Session(this.selected, this.profile, { challenge: this.challenge });
+    this.info = null; this.detailReturn = null; this.resumeAfterInfo = false; this.lastProgressRevision = -1; this.lastWave = 0;
+    this.session = new Session(this.selected, this.profile);
     this.scene!.resize(); this.unlockMusic(); this.render();
   }
   private click(event: MouseEvent): void {
     const button = (event.target as Element).closest<HTMLButtonElement>('button');
     if (!button || button.disabled) return; Sfx.ui();
     if (button.dataset.infoKind) {
-      this.resumeAfterInfo = !!this.session && !this.session.paused; this.session?.pause();
+      this.detailReturn = this.info === 'growth' ? 'growth' : null;
+      if (!this.info) this.pauseForInfo();
       this.detail = { kind: button.dataset.infoKind as DetailKind, id: button.dataset.infoId! };
       this.info = 'details'; this.render(); return;
     }
     if (button.dataset.character) { this.selected = button.dataset.character; this.render(); return; }
-    if (button.dataset.upgrade) { this.session!.chooseUpgrade(button.dataset.upgrade); this.render(); return; }
+    if (button.dataset.talent) {
+      if (this.session && !this.session.result) return;
+      const profile = buyTalent(this.profile, button.dataset.talent);
+      if (profile) {
+        this.profile = profile; persistProfile(profile); this.render();
+        root.querySelector<HTMLElement>(`[data-talent="${button.dataset.talent}"]:not(:disabled)`)?.focus({ preventScroll: true });
+      }
+      return;
+    }
     if (button.dataset.buy) { if (!this.session!.buy(button.dataset.buy)) this.toast('饼干不够，或道具栏已满。'); this.render(); return; }
     if (button.dataset.item !== undefined) { if (!this.session!.useItem(Number(button.dataset.item))) this.toast('现在还不能使用。'); return; }
     switch (button.dataset.action) {
@@ -248,13 +269,22 @@ class App {
       case 'reroll': this.session!.reroll(); this.render(); break;
       case 'skill': this.session!.activateSkill(); break;
       case 'switch': this.session!.switchForm(); break;
-      case 'help': case 'settings': this.resumeAfterInfo = !!this.session && !this.session.paused; this.session?.pause(); this.info = button.dataset.action; this.render(); break;
-      case 'close-info': this.info = null; if (this.resumeAfterInfo) this.session?.resume(); this.resumeAfterInfo = false; this.render(); break;
+      case 'growth': if (this.session && !this.session.result) break; this.pauseForInfo(); this.info = 'growth'; this.render(); break;
+      case 'help': case 'settings': this.pauseForInfo(); this.info = button.dataset.action; this.render(); break;
+      case 'close-info': this.closeInfo(); break;
     }
+  }
+  private pauseForInfo(): void {
+    this.resumeAfterInfo = this.session?.phase === 'running' && !this.session.paused;
+    if (this.resumeAfterInfo) this.session!.pause();
+  }
+  private closeInfo(): void {
+    if (this.detailReturn) { this.info = this.detailReturn; this.detailReturn = null; }
+    else { this.info = null; if (this.resumeAfterInfo) this.session?.resume(); this.resumeAfterInfo = false; }
+    this.render();
   }
   private change(event: Event): void {
     const target = event.target as HTMLInputElement;
-    if (target.id === 'challenge') this.challenge = Number(target.value);
     if (target.dataset.option) {
       this.settings[target.dataset.option as keyof Settings] = target.checked;
       Sfx.setEnabled(this.settings.sound);
@@ -264,17 +294,12 @@ class App {
     }
   }
   private unlockMusic(): void { if (this.settings.music) void this.music.play().catch(() => { /* 静音继续，不阻塞开局。 */ }); }
-  private clearInput(): void { keys.clear(); this.stick = { x: 0, y: 0 }; this.pointerId = null; this.aimPointerId = null; this.firing = false; this.fireOnce = false; }
+  private clearInput(): void { keys.clear(); this.stick = { x: 0, y: 0 }; this.pointerId = null; this.aimPointerId = null; this.mouseFiring = false; this.touchFiring = false; }
   private autoPause(): void { this.clearInput(); if (this.session?.phase === 'running' && !this.session.paused) { this.session.pause(); this.render(); } }
   private keyDown(event: KeyboardEvent): void {
-    if (event.code === 'Escape') { if (this.info) { this.info = null; if (this.resumeAfterInfo) this.session?.resume(); this.resumeAfterInfo = false; this.render(); } else if (this.session?.phase === 'running') { this.session.paused ? this.session.resume() : this.session.pause(); this.render(); } return; }
+    if (event.code === 'Escape') { if (this.info) this.closeInfo(); else if (this.session?.phase === 'running') { this.session.paused ? this.session.resume() : this.session.pause(); this.render(); } return; }
     const uiMode = !this.session || this.session.paused || this.session.phase !== 'running' || !!this.info;
     if (uiMode) {
-      if (!this.info && this.session?.phase === 'upgrade' && /^Digit[1-3]$/.test(event.code)) {
-        const offer = this.session.upgradeChoices[Number(event.code.slice(-1)) - 1];
-        if (offer && !event.repeat) { event.preventDefault(); this.session.chooseUpgrade(offer.id); this.render(); }
-        return;
-      }
       if ((event.target as Element).tagName === 'SELECT') return;
       const direction: Record<string, [number, number]> = { KeyA: [-1, 0], ArrowLeft: [-1, 0], KeyD: [1, 0], ArrowRight: [1, 0], KeyW: [0, -1], ArrowUp: [0, -1], KeyS: [0, 1], ArrowDown: [0, 1] };
       if (direction[event.code]) { event.preventDefault(); this.navigate(...direction[event.code]); return; }
@@ -282,10 +307,11 @@ class App {
         event.preventDefault(); if (event.repeat) return;
         const scope = root.querySelector('.modal') ?? root.querySelector('.menu');
         const focused = document.activeElement as HTMLElement;
-        if (!this.session && !this.info && (!scope?.contains(focused) || focused.dataset.character)) this.start();
+        if (!this.session && !this.info && (!root.contains(focused) || focused.dataset.character)) this.start();
         else {
           const fallback = !this.info && this.session?.phase === 'shop' ? '[data-action="next"]' : 'button:not(:disabled)';
-          (scope?.contains(focused) ? focused : scope?.querySelector<HTMLElement>(fallback))?.click();
+          const focusedControl = scope?.contains(focused) || (!this.session && !this.info && focused.closest('.app-header'));
+          (focusedControl ? focused : scope?.querySelector<HTMLElement>(fallback))?.click();
         }
       }
       return;
@@ -296,10 +322,7 @@ class App {
     if (event.code === 'Space') this.session.activateSkill();
     if (event.code === 'KeyQ') this.session.switchForm();
     const slot = ['Digit1', 'Digit2', 'Digit3'].indexOf(event.code);
-    if (slot >= 0) {
-      if (this.session.phase === 'upgrade') { const offer = this.session.upgradeChoices[slot]; if (offer) { this.session.chooseUpgrade(offer.id); this.render(); } }
-      else this.session.useItem(slot);
-    }
+    if (slot >= 0) this.session.useItem(slot);
   }
 
   private navigate(dx: number, dy: number): void {
@@ -323,7 +346,7 @@ class App {
   private pointerDown(event: PointerEvent): void {
     const aimPad = (event.target as Element).closest<HTMLElement>('#aim-pad');
     if (aimPad && this.aimPointerId === null && this.session?.phase === 'running' && !this.session.paused) {
-      event.preventDefault(); this.aimPointerId = event.pointerId;
+      event.preventDefault(); this.aimPointerId = event.pointerId; this.touchFiring = true;
       const rect = aimPad.getBoundingClientRect(); this.aimCenter = { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 };
       aimPad.setPointerCapture(event.pointerId); this.pointerMove(event); return;
     }
@@ -348,9 +371,9 @@ class App {
     const stick = document.querySelector<HTMLElement>('.stick'); if (stick) stick.style.transform = `translate(${this.stick.x * 28}px,${this.stick.y * 28}px)`;
   }
   private pointerUp(event: PointerEvent): void {
-    if (event.pointerType === 'mouse') this.firing = false;
+    if (event.pointerType === 'mouse' && (event.button === 0 || event.type === 'pointercancel')) this.mouseFiring = false;
     if (event.pointerId === this.aimPointerId) {
-      this.aimPointerId = null; this.fireOnce = true;
+      this.aimPointerId = null; this.touchFiring = false;
       const knob = document.querySelector<HTMLElement>('.aim-stick'); if (knob) knob.style.transform = '';
     }
     if (event.pointerId !== this.pointerId) return;

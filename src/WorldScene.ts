@@ -3,6 +3,7 @@ import type { Session } from './game/Session';
 import { characters, enemies as enemyDefs, items } from './game/content';
 import type { GameEffect, InputState } from './game/types';
 import { Sfx } from './audio';
+import { WorldBackdrop } from './WorldBackdrop';
 
 interface Host {
   session: Session | null;
@@ -18,13 +19,15 @@ export class WorldScene extends Phaser.Scene {
   private host: Host;
   private actors = new Map<string, Phaser.GameObjects.Image>();
   private spare: Phaser.GameObjects.Image[] = [];
-  private bars = new Map<number, Phaser.GameObjects.Rectangle>();
   private seen = new Set<string>();
   private menuActors: Phaser.GameObjects.Image[] = [];
   private fxCount = 0;
   private loadFailed = false;
   private aimGuide!: Phaser.GameObjects.Graphics;
   private attackGuide!: Phaser.GameObjects.Graphics;
+  private healthBars!: Phaser.GameObjects.Graphics;
+  private danger!: Phaser.GameObjects.Graphics;
+  private backdrop!: WorldBackdrop;
   private recoil = 0;
   private hurtFlash = 0;
 
@@ -52,18 +55,10 @@ export class WorldScene extends Phaser.Scene {
     this.cameras.main.setBackgroundColor('#6e895a');
     this.aimGuide = this.add.graphics().setDepth(4);
     this.attackGuide = this.add.graphics().setDepth(70);
-    this.add.tileSprite(960, 640, 1920, 1280, 'atlas', 'grass-0').setDepth(-20);
+    this.healthBars = this.add.graphics().setDepth(71);
+    this.danger = this.add.graphics().setDepth(2);
+    this.backdrop = new WorldBackdrop(this);
     this.cameras.main.setBounds(0, 0, 1920, 1280);
-    // 地上的花由会话作为真实拾取物生成，避免摆放不可采的同形装饰。
-    for (let i = 0; i < 24; i++) {
-      const side = i % 4;
-      const along = 40 + (i * 149) % (side % 2 ? 1170 : 1820);
-      const x = side === 1 ? 1890 : side === 3 ? 25 : along;
-      const y = side === 0 ? 20 : side === 2 ? 1250 : along;
-      this.add.image(x, y, 'atlas', 'tree').setScale(2).setDepth(-1);
-    }
-    const boundary = this.add.graphics().setDepth(-5);
-    boundary.lineStyle(5, 0x536c44, 0.8).strokeRect(24, 24, 1872, 1232);
     [...new Set(Object.values(characters).flatMap(def => [...def.forms]))].forEach((form, i) => {
       const image = this.add.image(760 + i * 95, 580 + (i % 2) * 35, `character-${form}`);
       const source = image.texture.getSourceImage();
@@ -77,13 +72,17 @@ export class WorldScene extends Phaser.Scene {
 
   resize(): void {
     const { width, height } = this.scale;
-    const zoom = width < height ? Math.max(0.6, Math.min(1, width / 520)) : Math.max(0.7, Math.min(1.45, height / 650));
+    const preferredZoom = width < height ? Math.max(0.6, Math.min(1, width / 520)) : Math.max(0.7, Math.min(1.45, height / 650));
+    const zoom = Math.max(preferredZoom, width / 1920, height / 1280);
     this.cameras.main.setZoom(zoom);
     this.host.session?.setView(width / zoom, height / zoom);
   }
 
   update(time: number, delta: number): void {
     const s = this.host.session;
+    this.healthBars?.clear(); this.danger?.clear();
+    this.backdrop?.setBiome(s?.biome ?? 'grass');
+    this.backdrop?.update(time);
     if (!s) {
       this.aimGuide?.clear();
       this.attackGuide?.clear();
@@ -125,11 +124,17 @@ export class WorldScene extends Phaser.Scene {
       this.put('shield', s.player.x, s.player.y + 4, 'shield', 1.45).setAlpha(0.22 + Math.sin(time / 200) * 0.07).setDepth(p.depth - 0.1);
     }
     // 统一使用生成的头部头像；饰品只提供效果与背包展示，不强贴挂件。
-    for (let i = 0; i < s.followers; i++) {
-      const angle = time / 1800 + i * Math.PI;
-      this.putCharacter(`follower-${i}`, p.x + Math.cos(angle) * 58, p.y + Math.sin(angle) * 38, 'goodrabbit', 44);
+    for (const follower of s.followers) {
+      const image = this.putCharacter(`follower-${follower.id}`, follower.x, follower.y, 'goodrabbit', 44);
+      image.setFlipX(follower.facingX < 0).setAlpha(follower.hurtCooldown > 0 ? 0.65 : 1);
+      this.healthBar(follower.x, follower.y - 29, follower.hp, follower.maxHp, 30, 0xa7d27c);
     }
-    for (const prop of s.props) this.put(`prop-${prop.id}`, prop.x, prop.y, prop.kind, prop.kind === 'tree' ? 1.65 : 1.1).setTint(prop.flash > 0 ? 0xffe4bb : 0xffffff);
+    for (const prop of s.props) {
+      const tree = prop.kind === 'tree';
+      const frame = tree ? s.biome === 'water' ? 'tree-water' : s.biome === 'sand' ? 'tree-beach' : 'tree' : 'barrel';
+      this.put(`prop-${prop.id}`, prop.x, prop.y, frame, tree ? 1.65 : 1.1).setTint(prop.flash > 0 ? 0xffe4bb : 0xffffff);
+      this.healthBar(prop.x, prop.y - (tree ? 44 : 31), prop.hp, prop.maxHp, 36, tree ? 0xa6c66f : 0xefb55f);
+    }
     for (const enemy of s.enemies) {
       if (!enemy.active) continue;
       const def = enemyDefs[enemy.kind];
@@ -139,17 +144,18 @@ export class WorldScene extends Phaser.Scene {
       image.setFlipX(enemy.vx < 0).setTint(enemy.flash > 0 ? 0xffffff : enemy.windup > 0 ? 0xfbe098 : 0xffffff);
       if (enemy.flash > 0) image.setTintFill(0xfff5cf);
       if (enemy.flash > 0 && this.host.shake) image.setScale(image.scaleX * 1.07, image.scaleY * 0.96);
-      let bar = this.bars.get(enemy.id);
-      if (!bar && !boss) {
-        bar = this.add.rectangle(0, 0, 30, 3, 0x994439).setOrigin(0, 0.5);
-        this.bars.set(enemy.id, bar);
-      }
-      bar?.setPosition(enemy.x - 15, enemy.y - 19).setDisplaySize(30 * Math.max(0, enemy.hp / enemy.maxHp), 3).setVisible(enemy.hp < enemy.maxHp).setDepth(image.depth + 1);
+      if (boss || enemy.hp < enemy.maxHp) this.healthBar(enemy.x, enemy.y - (boss ? 58 : 27), enemy.hp, enemy.maxHp, boss ? 72 : 30, 0xe78370);
     }
     for (const shot of s.projectiles) {
-      const frameName = shot.enemy ? 'enemy-shot' : shot.kind === 'heart' ? 'heart-icon' : shot.kind === 'signal' ? 'signal-icon' : 'projectile';
+      const frameName = shot.enemy ? 'enemy-shot' : shot.kind === 'heart' ? 'heart-icon' : shot.kind === 'signal' ? 'signal-icon' : shot.kind === 'cookie' ? 'cookie' : 'projectile';
       this.put(`shot-${shot.id}`, shot.x, shot.y, frameName, shot.enemy ? 0.6 : 0.7).setDepth(40).setRotation(Math.atan2(shot.vy, shot.vx));
+      if (s.biome === 'water' && !shot.enemy) this.put(`shot-bubble-${shot.id}`, shot.x, shot.y, `bubble-ring-${Math.floor(time / 180) % 4}`, 0.46).setDepth(41).setAlpha(0.8);
     }
+    for (const apple of s.orbitApples) {
+      this.put(`orbit-${apple.id}`, apple.x, apple.y, 'projectile', 0.8).setDepth(40).setRotation(apple.angle);
+      if (s.biome === 'water') this.put(`orbit-bubble-${apple.id}`, apple.x, apple.y, `bubble-ring-${Math.floor(time / 180) % 4}`, 0.6).setDepth(41);
+    }
+    this.drawHazards(s, time);
     for (const drop of s.pickups) {
       const sprite = drop.kind === 'coin' ? 'cookie' : drop.kind === 'flower' ? `flower-${drop.id % 3}` : drop.kind === 'apple' ? 'apple' : items[drop.itemId!].icon;
       this.put(`drop-${drop.id}`, drop.x, drop.y + Math.sin(time / 180 + drop.id) * 2, sprite, drop.kind === 'item' || drop.kind === 'flower' ? 0.8 : 0.55).setDepth(1);
@@ -159,8 +165,6 @@ export class WorldScene extends Phaser.Scene {
       image.setActive(false).setVisible(false);
       this.spare.push(image); this.actors.delete(key);
     }
-    const living = new Set(s.enemies.filter(e => e.active).map(e => e.id));
-    for (const [id, bar] of this.bars) if (!living.has(id)) { bar.destroy(); this.bars.delete(id); }
     for (const effect of s.drainEffects()) this.effect(effect);
     this.host.tick();
   }
@@ -183,7 +187,35 @@ export class WorldScene extends Phaser.Scene {
 
   private hideActors(): void {
     for (const image of this.actors.values()) image.setVisible(false);
-    for (const bar of this.bars.values()) bar.setVisible(false);
+  }
+
+  private healthBar(x: number, y: number, hp: number, maxHp: number, width: number, color: number): void {
+    const g = this.healthBars;
+    g.fillStyle(0x293d31, 0.95).fillRect(Math.round(x - width / 2 - 1), Math.round(y - 1), width + 2, 7);
+    g.fillStyle(0x5c6050, 1).fillRect(Math.round(x - width / 2), Math.round(y), width, 5);
+    g.fillStyle(color, 1).fillRect(Math.round(x - width / 2), Math.round(y), Math.max(0, width * hp / maxHp), 5);
+  }
+
+  private drawHazards(session: Session, time: number): void {
+    const g = this.danger;
+    for (const hazard of session.hazards) {
+      const warning = hazard.warningRemaining > 0;
+      const pulse = 0.55 + Math.sin(time / 80) * 0.2;
+      if (hazard.kind === 'laser') {
+        g.lineStyle(hazard.width + (warning ? 0 : 8), 0xe56f59, warning ? 0.15 : 0.25);
+        g.beginPath().moveTo(hazard.x, hazard.y).lineTo(hazard.endX, hazard.endY).strokePath();
+        g.lineStyle(warning ? 2 : hazard.width, warning ? 0xffbd8b : 0xffb790, warning ? pulse : 0.85);
+        g.beginPath().moveTo(hazard.x, hazard.y).lineTo(hazard.endX, hazard.endY).strokePath();
+        if (!warning) {
+          g.lineStyle(3, 0xfff7d5, 1).beginPath().moveTo(hazard.x, hazard.y).lineTo(hazard.endX, hazard.endY).strokePath();
+        }
+      } else {
+        g.fillStyle(warning ? 0xdf685b : 0xf4a55b, warning ? 0.14 : 0.55).fillCircle(hazard.x, hazard.y, hazard.radius);
+        g.lineStyle(warning ? 3 : 5, warning ? 0xffab83 : 0xffefad, warning ? pulse : 0.85).strokeCircle(hazard.x, hazard.y, hazard.radius);
+        g.lineStyle(2, 0xffddab, warning ? pulse : 1);
+        g.beginPath().moveTo(hazard.x - 10, hazard.y).lineTo(hazard.x + 10, hazard.y).moveTo(hazard.x, hazard.y - 10).lineTo(hazard.x, hazard.y + 10).strokePath();
+      }
+    }
   }
 
   private effect(fx: GameEffect): void {
@@ -195,17 +227,19 @@ export class WorldScene extends Phaser.Scene {
     if (fx.type === 'melee') { this.swing(fx); return; }
     if (fx.type === 'reload') { Sfx.reload(); return; }
     if (fx.type === 'pickup') { Sfx.coin(); return; }
+    if (fx.type === 'boss' && fx.kind === 'defeated') return;
+    if (fx.type === 'shield' && fx.kind === 'block') Sfx.hit();
     if (fx.type === 'hit') Sfx.hit();
     if (fx.type === 'kill') Sfx.kill();
-    if (fx.type === 'hurt') { Sfx.hurt(); this.hurtFlash = 0.12; if (this.host.shake) this.cameras.main.shake(90, 0.002); }
+    if (fx.type === 'hurt') { Sfx.hurt(); if (fx.kind !== 'follower') { this.hurtFlash = 0.12; if (this.host.shake) this.cameras.main.shake(90, 0.002); } }
     if (fx.type === 'heal') Sfx.heal();
-    if (fx.type === 'levelup') Sfx.levelUp();
     if (fx.type === 'wave') Sfx.waveClear();
     if (fx.type === 'skill' || fx.type === 'switch') { Sfx.skill(); if (this.host.shake) this.cameras.main.shake(120, 0.003); }
     if (fx.type === 'explosion') { Sfx.explosion(); if (this.host.shake) this.cameras.main.shake(140, 0.004); }
     if (fx.type === 'buy') Sfx.buy();
     if (fx.type === 'victory') Sfx.victory();
     if (fx.type === 'defeat') Sfx.defeat();
+    if (fx.type === 'kill' && fx.kind === 'boss' && this.host.session?.biome === 'water') this.sinkBoss(fx);
     if (this.fxCount > 70) return;
     if (fx.type === 'hit' || fx.type === 'heal' || fx.type === 'hurt') {
       const color = fx.type === 'heal' ? '#d3f6b1' : fx.type === 'hurt' ? '#ffb0a0' : '#fff1bc';
@@ -223,6 +257,15 @@ export class WorldScene extends Phaser.Scene {
         this.fxCount++;
         this.tweens.add({ targets: pixel, x: fx.x + Math.cos(i * 1.25) * 32, y: fx.y + Math.sin(i * 1.25) * 32, alpha: 0, duration: 300, onComplete: () => { pixel.destroy(); this.fxCount--; } });
       }
+    }
+  }
+
+  private sinkBoss(fx: GameEffect): void {
+    const boss = this.add.image(fx.x, fx.y, 'atlas', 'boss-0').setScale(2.3).setDepth(32).setTint(0xa6ced0);
+    this.tweens.add({ targets: boss, y: fx.y + 30, scaleY: 1.5, alpha: 0, duration: 850, onComplete: () => boss.destroy() });
+    for (let i = 0; i < 7; i++) {
+      const bubble = this.add.image(fx.x + (i % 3 - 1) * 16, fx.y - 8 + (i % 2) * 9, 'atlas', 'bubble').setScale(0.7 + (i % 3) * 0.25).setDepth(45);
+      this.tweens.add({ targets: bubble, x: bubble.x + Math.sin(i) * 25, y: bubble.y - 65 - i * 5, alpha: 0, duration: 650 + i * 90, delay: i * 55, onComplete: () => bubble.destroy() });
     }
   }
 
