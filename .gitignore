@@ -2,3 +2,5 @@ node_modules/
 dist/
 .verify/
 .claude/
+/角色参考/
+output/

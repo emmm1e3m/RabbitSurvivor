@@ -1,0 +1,104 @@
+{
+  "schemaVersion": 1,
+  "atlases": {
+    "game": {
+      "image": "assets/atlas.png",
+      "data": "assets/atlas.json"
+    }
+  },
+  "frameSize": [
+    48,
+    48
+  ],
+  "animations": {
+    "boss": {
+      "idle": [
+        "boss-0",
+        "boss-2"
+      ],
+      "walk": [
+        "boss-0",
+        "boss-1",
+        "boss-2",
+        "boss-3"
+      ],
+      "frameRate": 7
+    }
+  },
+  "palette": {
+    "ink": "#483735",
+    "deep": "#302d34",
+    "paper": "#fff7e7",
+    "white": "#fffdf1",
+    "shade": "#e9d7bb",
+    "skin": "#f7d9bd",
+    "skinShade": "#dfaa8f",
+    "brown": "#77533e",
+    "darkBrown": "#503b35",
+    "red": "#dc5650",
+    "redDark": "#a93642",
+    "coral": "#f58b79",
+    "pink": "#f3b4bd",
+    "pinkDark": "#d9879e",
+    "gold": "#f2c967",
+    "goldDark": "#c88c48",
+    "cream": "#f8dfa0",
+    "creamShade": "#deb77b",
+    "leaf": "#719d54",
+    "green": "#a3bd69",
+    "darkGreen": "#41674b",
+    "forest": "#375547",
+    "blue": "#7db5c3",
+    "blueDark": "#426a91",
+    "purple": "#9b88bd",
+    "purpleDark": "#695280"
+  },
+  "frames": [
+    "boss-0",
+    "boss-1",
+    "boss-2",
+    "boss-3",
+    "cookie-enemy",
+    "note-enemy",
+    "charger",
+    "elite",
+    "exploder",
+    "tree",
+    "barrel",
+    "apple",
+    "cookie",
+    "coin",
+    "hat",
+    "bow",
+    "lamp",
+    "heart-icon",
+    "shield",
+    "xp",
+    "star",
+    "boots",
+    "magnet",
+    "ring",
+    "clover",
+    "projectile",
+    "enemy-shot",
+    "pixel",
+    "heal-potion",
+    "blast",
+    "sword",
+    "book",
+    "signal-icon",
+    "grass-0",
+    "grass-1",
+    "grass-2",
+    "grass-3",
+    "flower-0",
+    "flower-1",
+    "flower-2",
+    "boss-0-gray",
+    "boss-1-gray",
+    "boss-2-gray",
+    "boss-3-gray",
+    "note-enemy-gray",
+    "elite-gray"
+  ]
+}

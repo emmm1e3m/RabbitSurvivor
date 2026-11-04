@@ -1,117 +1,85 @@
-# RabbitSurvivor
-
-给小铲的幸存者游戏 —— Phaser 3.90 + TypeScript + Vite 制作的波次生存射击游戏。
+# 幸存兔
 
 [在线游玩](https://emmm1e3m.github.io/RabbitSurvivor/) · [个人主页](https://emmm1e3m.github.io/)
 
-代码基于 `xwx12345/myrabbitgame`，保留原有提交历史。推送到 `main` 后，GitHub Actions 自动构建并部署到 GitHub Pages。
+电脑、手机都能玩的果园生存游戏。当前为0.2 demo：课代饼、三好兔、饼狗，以及心好兔与信号狗组合；八波冒险、升级三选一、波后商店、一次性道具和坏老板决战。
 
-## 运行方式
+## 运行与验证
 
-需要 Node.js 20.19+ 或 22.12+（Vite 8 要求）。
+需要Node.js 22.12+，CI使用Node.js 24。
 
-```bash
-npm install       # 安装依赖
-npm run dev       # 启动开发服务器（默认 5173 端口，HMR）
-npm run build     # 类型检查（tsc --noEmit）+ 生产构建到 dist/
-npm run preview   # 预览生产包（默认 4173 端口）
-npx tsc --noEmit  # 仅做类型检查
+```sh
+npm ci
+npm run dev
+npm run check
+npm run build
+npm run preview
 ```
 
-打开终端提示的地址即可游玩。主菜单按 Enter 进入角色选择，← → 切换角色，↑ ↓ 切换难度，Enter 确认开局。
+画布使用浏览器当前可用宽高，随窗口与横竖屏调整，不设置固定分辨率。音乐在开始后后台加载，失败也可静音游玩。
 
-### 调试模式
+## 操作
 
-在 URL 后加 `?debug` 启用调试快捷键（生产构建自动关闭），例如 `http://localhost:5173/?debug`。按键包括：
+默认开启自动索敌与开火，可在设置中关闭并切为手动。移动不改变攻击冷却。
 
-- `1-5` 注入特效饰品、`6` +50 经验、`7` 秒杀玩家、`8` +100 金币、`9` 立即结束本波
-- `B` 击碎全部苹果树、`C` 100% 暴击、`G` 释放角色技能、`V` 生成突击怪、`H` 生成弹幕精英、`J` 生成 Boss、`N` 生成炸药桶、`U` 引爆全部炸药桶、`R` 进入装填、`K` 秒杀最近敌人、`Q` +1 小问号
+- 界面：WASD/方向键选择，空格/回车确认，也可直接点击或触摸。
+- 电脑战斗：WASD/方向键移动；手动模式用鼠标瞄准、按住左键开火；空格放技能，Q切换兔狗，1/2/3使用道具，Esc暂停。
+- 手机战斗：左摇杆移动；手动模式用右摇杆拖动瞄准、松手射击；技能、切换和道具使用独立按钮。
+- 普攻冷却与换弹进度只通过角色头顶进度条显示，不在底部重复显示普攻CD。
+- 角色、技能、饰品与升级旁的“i”打开对应详情，查看说明、数值与效果。
 
-调试模式下真实单例挂载在 `window.__rabbit = { game, RunData, MetaProgress }`，供无头脚本读写状态。
+普通波存活到结束后，场上未拾取的花与饼干币自动结算，再发放波次奖励并进入商店；未处理的升级先完成选择。最终波必须击败坏老板，等倒计时结束不会直接通关。
 
-### 无头冒烟测试
+## 当前实现
 
-项目无测试框架，运行时验证使用 puppeteer-core 驱动本机 Chrome/Edge（不下载浏览器），截图输出到 `.verify/`。需先启动开发服务器：
+- 四组选角、五个形态。五张正式像素头像分别根据用户原始参考图，由内置ImageGen全新生成头部；没有从全身图裁头。统一使用五张透明静态PNG，选角、战斗、跟班、界面与图标共享这组资源。
+- 课代饼波后成长和跟班；苹果双环每圈32方向、两圈共64弹，5级提升单枚威力，不再增加弹数。三好兔拾币收益与持币增伤；饼狗近战和苹果盾；兔狗共享生命、技能冷却并切换心好兔/信号狗。
+- 默认自动与可选手动攻击、近战方向挥击、换弹、角色主动技能。双发对近战追加挥击，穿透对近战增加每段命中目标数与范围，后续段伤害受限。
+- 饼干怪、音符怪、冲刺和自爆敌人，苹果树、炸药桶与坏老板。
+- 递增经验、有限叠加饰品、背包、商店购买/刷新、真实花朵拾取与波后收益结算。
+- 地图与商店一次性道具；灯使用后消耗，无敌持续11.2秒，本局最多取得一次。
+- 真正通关后解锁最多三格道具栏与可选择的挑战等级。
+- 资源加载提示、暂停/失焦保护、声音与震屏设置、本地通关记录，以及按内容展示的“i”详情。
 
-```bash
-node scripts/verify.mjs              # 冒烟：菜单→开局→移动→击杀拾取
-node scripts/verify.mjs full         # 快速跑完 10 波验证完整循环与胜利结算
-node scripts/verify.mjs shop         # 波次结算→商店→购买→下一波
-node scripts/verify.mjs levelup      # 升级弹窗→金币刷新→确认→继续
-node scripts/verify.mjs question     # 小问号逐个接受/拒绝→商店
-node scripts/verify.mjs charger      # 突击怪蓄力（黄）/冲刺（红）阶段
-node scripts/verify.mjs activeskill  # 主动技能释放与 5 级强化
+角色不强行适配帽子等挂件。饰品仍提供数值与背包显示；装扮定义不等于已实现完整穿戴系统。
+
+本版尚未移植旧版永久天赋树、问号事件与独立图鉴/成就页面，也未实现高级备用生命、满槽替换或独立装扮选择；满槽时不接收新的一次性道具。旧版进度保留在原存储键中，新版仅迁移基本统计。数值仍需真人和手机实战调优。
+
+## 开发结构
+
+```text
+src/game/content.ts          角色、道具、敌人、能力、升级、装扮和波次静态注册表
+src/game/Session.ts          一局玩法状态、战斗、成长与交易
+src/game/types.ts            纯玩法契约
+src/main.ts                  页面界面、动作与浏览器输入
+src/WorldScene.ts            Phaser世界表现与相机
+src/DetailsView.ts           按内容生成详情
+src/ShopView.ts              商店商品与购买状态
+src/style.css                响应式像素界面
+src/audio.ts                 程序化音效
+art/sprites.mjs              道具、敌人与环境像素源，不绘制五个可玩角色
+art/characters/prompts.json  五个正式头像的实际ImageGen提示词与输出来源
+scripts/                     素材准备、离线生成与玩法/资源检查
+public/assets/characters/    唯一一组正式ImageGen像素头像，五张透明PNG
+public/assets/               离线生成的道具、敌人和环境PNG图集
+archive/prototype-2026-11-04/ 原始游戏完整源码归档，不参与构建或发布
 ```
 
-更多模式（`meta` / `boss` / `death` / `pause` / `restart` / `timer` / `boss` / `sound` / `map` / `lock` 等）见 `CLAUDE.md`。也可对生产包运行：
+增加普通属性饰品，在content.ts登记statBonuses、图标和价格即可；已有行为的怪物也优先复用配置。全新能力或AI才增加对应行为实现。当前不预建插件系统或把所有目标目录一次拆完。
 
-```bash
-URL=http://localhost:4173/ node scripts/verify.mjs
-```
+`npm run check`包含内容/素材引用、登记新饰品的扩展演练、八波流程、Boss目标、灯、共享冷却、近战双发/穿透、花朵与波后结算等检查。自动检查覆盖规则与状态，不能代替真人难度评估。
 
-## 架构说明
+## 素材流程
 
-### 技术栈与渲染
+- 角色：内置ImageGen逐个根据原始参考直接生成“只有头部”的像素图。实际提示词及生成文件ID保存在`art/characters/prompts.json`。
+- `scripts/prepare-character-images.mjs --sources <路径映射JSON>`仅对生成的整张头像等比缩小并保留透明通道，不裁切全身、不代码重绘。正式文件为`public/assets/characters/{classrep,goodrabbit,bingo,heart,signal}.png`。
+- `npm run assets:build`在开发/CI阶段生成道具、敌人与环境图集；浏览器只加载PNG，不现场绘制素材。CI直接使用已入库头像，不调用ImageGen。
+- `scripts/extract-characters.mjs`仅可用于整理原始身份参考，默认输出到`.verify/reference-cutouts`，不生成正式头像，也不进入构建。原始参考目录与开发预览不发布。
 
-- Phaser 3.90 + TypeScript + Vite，纯 Web，无后端。
-- 视口 1280×720，地图默认为视口的 1.5 倍（1920×1080，角色可通过 `CharacterDef.mapScale` 覆盖）。相机不设边界、严格跟随玩家，玩家始终位于屏幕中心；移动通过地图滚动体现，玩家位置被 clamp 在地图内，边缘外露出深色底图。
-- 全部美术为程序化图形：`BootScene` 用 `Graphics.generateTexture()` 生成纹理，无外部图片素材；唯一外部资源是 `public/audio/bgm.mp3`。音效用 Web Audio 实时合成（`src/core/Sfx.ts`），并带节流与音高随机化。
+完整开发依据与后续清单见[重构设计方案](docs/重构设计方案.md)。推送main后GitHub Actions构建并部署Pages。
 
-### 场景与数据流
+## 来源
 
-```
-Boot → Menu → CharacterSelect → Game（常驻）
-                                   ├─ Shop / LevelUp / Question / Pause / GameOver（launch 覆盖层，Game 暂停）
-                                   └─ Meta / Codex（从 Menu scene.start 进入）
-```
+代码基于`xwx12345/myrabbitgame`，保留原提交历史；原始版本独立归档。
 
-- 覆盖层用 `scene.launch()` 启动，`Game` 用 `scene.pause()` 冻结后恢复；关闭时用 `scene.stop()` 并配合全局 `EventBus` 通知 GameScene 继续。
-- `RunData`（`src/core/RunData.ts`）是跨场景状态中枢：角色/难度、金币、波次、等级/经验、武器等级、饰品购买次数、商店锁定、小问号、局外天赋运行时效果、击杀统计等。`startRun()` 重置整局进度并注入局外天赋加成。
-- 跨场景事件走 `EventBus`（`src/core/EventBus.ts`），场景内敌人事件（`enemy-died` / `enemy-hit`）走 `scene.events`；全局监听在 scene SHUTDOWN 时手动解除。
-- 局外存档 `MetaProgress`（`src/core/MetaProgress.ts`）单例持久化到 localStorage（`rabbit:meta:v1`），保存星尘、天赋等级、成就与图鉴发现记录。
-
-### 战斗与实体
-
-- **不使用 Arcade Physics**。碰撞全部是手写圆-圆距离检测，集中在 `src/systems/CollisionSystem.ts`（玩家子弹×敌人、敌方弹幕×玩家、敌人×玩家），敌人之间互相穿透。
-- 对象池统一用 `Phaser.Group` + `classType`（`Enemy` / `Projectile` / `EnemyBullet` / `Pickup`），由 `GameScene.update` 手动逐实体调用 update。规模上升到数百敌人时可将子弹×敌人检测换成空间哈希，接口不变。
-- `AttributeSystem`（`src/core/AttributeSystem.ts`）模型为 `(base + Σflat) × (1 + Σpercent)`；`Player` 持有 `RunData.attributes` 的同一引用，商店购买即时生效。
-- `Weapon` 通过 getter 直接读取 `RunData.weaponLevel`；开火前在 `AttrKey.Range` 范围内锁定最近敌人，没有敌人则锁定苹果树；单发伤害流水线为 `基础伤害 × 武器等级缩放 × Damage 倍率 × 重型射击倍率`，暴击再 ×2。
-- 每波由倒计时驱动：预生成队列（小怪 / 突击怪 / 精英 / 弹幕精英 / 最终波 Boss）耗尽后按固定间隔补怪，时间到回收场上剩余敌人与弹幕，发放奖励后处理小问号、进入商店或胜利结算。
-- 敌人种类、数值与波次公式集中在 `src/data/balance.ts`；`Enemy` 通过可选的 `ranged` / `charge` 配置复用为远程怪或蓄力冲刺怪。
-
-### 源码结构
-
-```
-src/
-├─ main.ts                # Phaser.Game 配置与场景注册
-├─ config.ts              # 视口、深度、颜色、常量
-├─ types.ts               # 共享类型（EnemyKind、EffectId、MetaEffectId 等）
-├─ core/                  # RunData、EventBus、AttributeSystem、Sfx、MetaProgress
-├─ data/                  # 全部可调数据：balance、characters、skills、trinkets、
-│                         # questions、metaTree、achievements、codex
-├─ entities/              # Player、Enemy、Projectile、EnemyBullet、Pickup
-├─ weapons/               # Weapon
-├─ systems/               # CollisionSystem、WaveManager、DropSystem、ShopSystem
-├─ scenes/                # Boot、Menu、CharacterSelect、Game、Shop、LevelUp、
-│                         # Question、Pause、GameOver、Meta、Codex
-└─ ui/                    # HUD、DamageNumbers、ShopUI
-scripts/verify.mjs        # 无头冒烟脚本
-```
-
-### 数据驱动与扩展
-
-所有数值集中在 `src/data/balance.ts`，改平衡只动这一个文件。常见扩展点：
-
-- 新增敌人 = `types.ts` 的 `EnemyKind` + `balance.ts` 的 `ENEMY`/`DROP` + BootScene 纹理 + `WAVE` 公式；需要远程攻击时传入 `ranged` 配置。
-- 新增角色 = `src/data/characters.ts` 加一条数据，BootScene 自动生成纹理、角色选择自动展示；技能在 `src/data/skills.ts` 登记，数值在 `balance.ts` 的 `SKILL` 块。
-- 新增饰品 = `src/data/trinkets.ts`；特效饰品再加 `EffectId` 并在消费处读取。
-- 新增问号选项 = 向 `src/data/questions.ts` 的 `QUESTION_CHOICES` 追加一条。
-- 新增天赋 = `src/data/metaTree.ts`（纯属性用 `stat()`，运行时效果加 `MetaEffectId` + `runtime()` + 消费处）。
-- 新增成就 / 图鉴条目 = `src/data/achievements.ts` / `src/data/codex.ts`。
-
-扩展时的依赖约定：`src/entities`、`src/weapons`、`src/systems` 不依赖具体场景类，只接收 `Phaser.Scene`，由场景负责组装。
-
-## 其他约定
-
-- 代码注释与提交信息使用中文，标识符用英文；游戏内玩家可见文案为中文。
-- 开发与验证命令的详细说明、调试键列表及架构细节见 `CLAUDE.md`。
+中文像素字体使用[Fusion Pixel Font](https://github.com/TakWolf/fusion-pixel-font) 2026.10.25发行版，字体及依赖字体许可保留在`public/fonts/LICENSE-*.txt`。角色身份以用户原始参考图为依据，正式游戏头像由内置ImageGen重新生成。

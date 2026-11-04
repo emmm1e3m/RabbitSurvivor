@@ -1,28 +1,33 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <link rel="icon" href="data:," />
-  <title>Rabbit 幸存者</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#284d39" />
+  <meta name="description" content="带上苹果，和课代饼、三好兔、饼狗与兔狗一起守住果园。电脑和手机都能玩的像素生存冒险。" />
+  <link rel="icon" type="image/png" href="/assets/characters/goodrabbit.png" />
+  <link rel="stylesheet" href="/src/style.css" />
+  <title>幸存兔 · 苹果园冒险</title>
   <style>
-    html, body {
-      margin: 0;
-      padding: 0;
-      background: #11121a;
-      height: 100%;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      overflow: hidden;
-    }
-    #game canvas {
-      display: block;
-    }
+    /* 脚本与样式尚未就绪时也保留可见的启动反馈。 */
+    html, body { margin: 0; background: #284d39; }
+    #boot { position: fixed; inset: 0; z-index: 1000; display: grid; place-content: center; gap: 18px; background: #284d39; color: #fff5d9; padding: 24px; text-align: center; font-family: monospace; }
+    #boot h1 { font-size: 36px; margin: 0; letter-spacing: .18em; }
+    #boot-progress { width: min(280px, 76vw); height: 18px; margin: auto; accent-color: #f7c95f; }
+    #boot-retry[hidden] { display: none; }
   </style>
 </head>
 <body>
-  <div id="game"></div>
+  <div id="game" aria-hidden="true"></div>
+  <div id="ui"></div>
+  <div id="boot" role="status" aria-live="polite">
+    <img class="boot-mark" src="/assets/characters/goodrabbit.png" alt="" aria-hidden="true" />
+    <h1>幸存兔</h1>
+    <p id="boot-label">正在打开苹果园…</p>
+    <progress id="boot-progress" value="0" max="1" aria-label="必要资源加载进度"></progress>
+    <button id="boot-retry" hidden type="button">重新加载</button>
+    <small>苹果准备好，冒险就开始。</small>
+  </div>
   <script type="module" src="/src/main.ts"></script>
 </body>
 </html>
