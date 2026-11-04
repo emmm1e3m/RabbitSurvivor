@@ -1,6 +1,10 @@
-# myrabbitgame
+# RabbitSurvivor
 
 给小铲的幸存者游戏 —— Phaser 3.90 + TypeScript + Vite 制作的波次生存射击游戏。
+
+[在线游玩](https://emmm1e3m.github.io/RabbitSurvivor/) · [个人主页](https://emmm1e3m.github.io/)
+
+代码基于 `xwx12345/myrabbitgame`，保留原有提交历史。推送到 `main` 后，GitHub Actions 自动构建并部署到 GitHub Pages。
 
 ## 运行方式
 
